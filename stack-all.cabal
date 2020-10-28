@@ -1,5 +1,5 @@
 name:                stack-all
-version:             0.1.0
+version:             0.1
 synopsis:            CLI tool for building across Stackage major versions
 description:
         Build your Haskell project easily over Stackage major versions.
@@ -8,11 +8,11 @@ license-file:        LICENSE
 author:              Jens Petersen <juhpetersen@gmail.com>
 maintainer:          Jens Petersen <juhpetersen@gmail.com>
 copyright:           2020  Jens Petersen <juhpetersen@gmail.com>
-category:            Unclassified
+category:            Distribution
 homepage:            https://github.com/juhp/stack-all
 bug-reports:         https://github.com/juhp/stack-all/issues
 build-type:          Simple
---extra-doc-files:     README.md
+extra-doc-files:     README.md
 --                     ChangeLog.md
 cabal-version:       1.18
 
@@ -22,14 +22,14 @@ source-repository head
 
 executable stack-all
   main-is:             src/Main.hs
---  other-modules:       Paths_stack_all
---  hs-source-dirs:      app
+  other-modules:       Paths_stack_all
   build-depends:       base < 5,
                        config-ini,
                        directory,
                        extra,
                        filepath,
                        simple-cmd,
+                       simple-cmd-args,
                        text
   default-language:    Haskell2010
   ghc-options:         -Wall

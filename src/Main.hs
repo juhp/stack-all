@@ -5,8 +5,11 @@ import Data.Ini.Config
 import Data.List.Extra
 import qualified Data.Text.IO as T
 import SimpleCmd
+import SimpleCmdArgs
 import System.Directory
 import System.FilePath
+
+import Paths_stack_all (version)
 
 -- FIXME allow specific snapshots?
 -- FIXME lts latest
@@ -31,22 +34,41 @@ main :: IO ()
 main = do
   unlessM (doesFileExist "stack.yaml") $
     error' "no stack.yaml found"
+  simpleCmdArgs (Just version) "Build over Stackage versions"
+    "stack-all builds projects easily across different Stackage versions" $
+    main' <$> switchWith 'c' "create-config" "Create a project .stack-all file" <*> optional (readSnap <$> strOptionWith 'o' "oldest" "lts-MAJOR" "Oldest compatible LTS release")
+
+main' :: Bool -> Maybe Snapshot -> IO ()
+main' createConfig moldest = do
   configs <- filter isStackConf <$> listDirectory "."
-  moldest <- getOldestLTS
-  mapM_ (stackBuild configs) $
-    case moldest of
-      Just oldest -> filter (>= oldest) defaultSnaps
-      Nothing -> defaultSnaps
+  if createConfig then createStackAll moldest
+    else do
+    moldestLTS <- maybe getOldestLTS (return . Just) moldest
+    mapM_ (stackBuild configs) $
+      case moldestLTS of
+        Just oldest -> filter (>= oldest) defaultSnaps
+        Nothing -> defaultSnaps
   where
     isStackConf :: FilePath -> Bool
     isStackConf f = "stack-" `isPrefixOf` f && "yaml" `isExtensionOf` f
 
+stackAllFile :: FilePath
+stackAllFile = ".stack-all"
+
+createStackAll :: Maybe Snapshot -> IO ()
+createStackAll Nothing = error' "creating .stack-all requires --oldest LTS"
+createStackAll (Just snap) = do
+  exists <- doesFileExist stackAllFile
+  if exists then error' $ stackAllFile ++ " already exists"
+    else do
+    writeFile stackAllFile $
+      "[versions]\noldest = " ++ showSnap snap ++ "\n"
+
 getOldestLTS :: IO (Maybe Snapshot)
 getOldestLTS = do
-  let configFile = ".stack-all"
-  haveConfig <- doesFileExist configFile
+  haveConfig <- doesFileExist stackAllFile
   if haveConfig then
-    Just . readSnap <$> readIniConfig configFile rcParser id
+    Just . readSnap <$> readIniConfig stackAllFile rcParser id
     else return Nothing
   where
     rcParser :: IniParser String
