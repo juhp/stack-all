@@ -16,12 +16,6 @@ import Paths_stack_all (version)
 data Snapshot = LTS Int | Nightly
   deriving (Eq, Ord)
 
-defaultSnaps, allSnaps :: [Snapshot]
-defaultSnaps = [Nightly, LTS 16, LTS 14, LTS 13, LTS 12, LTS 11]
-
-allSnaps = defaultSnaps ++
-           [LTS 10, LTS 9, LTS 8, LTS 6, LTS 5, LTS 4, LTS 2, LTS 1]
-
 readSnap :: String -> Snapshot
 readSnap "nightly" = Nightly
 readSnap snap =
@@ -33,13 +27,22 @@ showSnap :: Snapshot -> String
 showSnap Nightly = "nightly"
 showSnap (LTS ver) = "lts-" ++ show ver
 
+defaultSnaps, allSnaps :: [Snapshot]
+defaultSnaps = [Nightly, LTS 16, LTS 14, LTS 13, LTS 12, LTS 11]
+
+allSnaps = defaultSnaps ++
+           [LTS 10, LTS 9, LTS 8, LTS 6, LTS 5, LTS 4, LTS 2, LTS 1]
+
 main :: IO ()
 main = do
   unlessM (doesFileExist "stack.yaml") $
     error' "no stack.yaml found"
   simpleCmdArgs (Just version) "Build over Stackage versions"
     "stack-all builds projects easily across different Stackage versions" $
-    main' <$> switchWith 'c' "create-config" "Create a project .stack-all file" <*> optional (readSnap <$> strOptionWith 'o' "oldest" "lts-MAJOR" "Oldest compatible LTS release") <*> switchWith 'a' "all-lts" "Try to build back to LTS 1 even"
+    main' <$>
+    switchWith 'c' "create-config" "Create a project .stack-all file" <*>
+    optional (readSnap <$> strOptionWith 'o' "oldest" "lts-MAJOR" "Oldest compatible LTS release") <*>
+    switchWith 'a' "all-lts" "Try to build back to LTS 1 even"
 
 main' :: Bool -> Maybe Snapshot -> Bool -> IO ()
 main' createConfig moldest allLTS = do
@@ -49,7 +52,8 @@ main' createConfig moldest allLTS = do
     moldestLTS <- maybe getOldestLTS (return . Just) moldest
     mapM_ (stackBuild configs) $
       case moldestLTS of
-        Just oldest -> filter (>= oldest) (if allLTS then allSnaps else defaultSnaps)
+        Just oldest ->
+          filter (>= oldest) (if allLTS then allSnaps else defaultSnaps)
         Nothing -> defaultSnaps
   where
     isStackConf :: FilePath -> Bool
