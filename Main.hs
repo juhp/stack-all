@@ -16,8 +16,11 @@ import Paths_stack_all (version)
 data Snapshot = LTS Int | Nightly
   deriving (Eq, Ord)
 
-defaultSnaps :: [Snapshot]
+defaultSnaps, allSnaps :: [Snapshot]
 defaultSnaps = [Nightly, LTS 16, LTS 14, LTS 13, LTS 12, LTS 11]
+
+allSnaps = defaultSnaps ++
+           [LTS 10, LTS 9, LTS 8, LTS 6, LTS 5, LTS 4, LTS 2, LTS 1]
 
 readSnap :: String -> Snapshot
 readSnap "nightly" = Nightly
@@ -36,17 +39,17 @@ main = do
     error' "no stack.yaml found"
   simpleCmdArgs (Just version) "Build over Stackage versions"
     "stack-all builds projects easily across different Stackage versions" $
-    main' <$> switchWith 'c' "create-config" "Create a project .stack-all file" <*> optional (readSnap <$> strOptionWith 'o' "oldest" "lts-MAJOR" "Oldest compatible LTS release")
+    main' <$> switchWith 'c' "create-config" "Create a project .stack-all file" <*> optional (readSnap <$> strOptionWith 'o' "oldest" "lts-MAJOR" "Oldest compatible LTS release") <*> switchWith 'a' "all-lts" "Try to build back to LTS 1 even"
 
-main' :: Bool -> Maybe Snapshot -> IO ()
-main' createConfig moldest = do
+main' :: Bool -> Maybe Snapshot -> Bool -> IO ()
+main' createConfig moldest allLTS = do
   configs <- filter isStackConf <$> listDirectory "."
   if createConfig then createStackAll moldest
     else do
     moldestLTS <- maybe getOldestLTS (return . Just) moldest
     mapM_ (stackBuild configs) $
       case moldestLTS of
-        Just oldest -> filter (>= oldest) defaultSnaps
+        Just oldest -> filter (>= oldest) (if allLTS then allSnaps else defaultSnaps)
         Nothing -> defaultSnaps
   where
     isStackConf :: FilePath -> Bool
