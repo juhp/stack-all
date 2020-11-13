@@ -49,6 +49,7 @@ main = do
     main' <$>
     switchWith 'c' "create-config" "Create a project .stack-all file" <*>
     switchWith 'd' "debug" "Verbose stack build output on error" <*>
+    optional (readSnap <$> strOptionWith 'n' "newest" "lts-MAJOR" "Newest LTS release to build from") <*>
     optional (strOptionWith 'C' "cmd" "COMMAND" "Specify a stack command [default: build]") <*>
     versionSpec
   where
@@ -57,8 +58,8 @@ main = do
       VersionList . map readSnap <$> some (strArg "LTS") <|>
       flagWith DefaultVersions AllVersions 'a' "all-lts" "Try to build back to LTS 1 even"
 
-main' :: Bool -> Bool -> Maybe String -> VersionSpec -> IO ()
-main' createConfig debug mcmd versionSpec = do
+main' :: Bool -> Bool -> Maybe Snapshot -> Maybe String -> VersionSpec -> IO ()
+main' createConfig debug mnewest mcmd versionSpec = do
   if createConfig then
     case versionSpec of
       Oldest oldest -> createStackAll oldest
@@ -73,7 +74,8 @@ main' createConfig debug mcmd versionSpec = do
         Oldest ver -> return $ filter (>= ver) allSnaps
         VersionList vers -> return vers
     configs <- filter isStackConf <$> listDirectory "."
-    mapM_ (stackBuild configs debug mcmd) versions
+    let newestFilter = maybe id (filter . (>=)) mnewest
+    mapM_ (stackBuild configs debug mcmd) (newestFilter versions)
   where
     isStackConf :: FilePath -> Bool
     isStackConf f = "stack-" `isPrefixOf` f && "yaml" `isExtensionOf` f
