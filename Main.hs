@@ -69,7 +69,7 @@ createStackAll (Just snap) = do
   if exists then error' $ stackAllFile ++ " already exists"
     else do
     writeFile stackAllFile $
-      "[versions]\noldest = " ++ showSnap snap ++ "\n"
+      "[versions]\n# reason comment\noldest = " ++ showSnap snap ++ "\n"
 
 getOldestLTS :: IO (Maybe Snapshot)
 getOldestLTS = do
