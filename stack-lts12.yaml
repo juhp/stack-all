@@ -1,0 +1,5 @@
+resolver: lts-12.27
+extra-deps:
+  - extra-1.6.15
+  - simple-cmd-0.1.4
+  - simple-cmd-args-0.1.6
