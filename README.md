@@ -14,7 +14,7 @@ Note that stack-all will automatically use `stack-ltsXX.yaml`, even for older lt
 You can specify the oldest working LTS for a project with `stack-all -o lts-13` or set it in a `.stack-all` file containing:
 ```
 [versions]
-# lts-12 deps too old
+# lts-12 foo-bar too old
 oldest = lts-13
 ```
 which can be created with `stack-all -c -o lts-13`.
