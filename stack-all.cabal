@@ -28,7 +28,7 @@ executable stack-all
                        config-ini,
                        directory,
                        extra >= 1.6.15,
-                       filepath,
+                       filepath >= 1.4.2,
                        process,
                        simple-cmd >= 0.1.4,
                        simple-cmd-args,
