@@ -56,7 +56,7 @@ main = do
     error' "no stack.yaml found"
   simpleCmdArgs (Just version) "Build over Stackage versions"
     "stack-all builds projects easily across different Stackage versions" $
-    main' <$>
+    run <$>
     switchWith 'c' "create-config" "Create a project .stack-all file" <*>
     switchWith 'd' "debug" "Verbose stack build output on error" <*>
     optional (readSnap <$> strOptionWith 'n' "newest" "lts-MAJOR" "Newest LTS release to build from") <*>
@@ -68,8 +68,8 @@ main = do
       VersionList . map readSnap <$> some (strArg "LTS") <|>
       flagWith DefaultVersions AllVersions 'a' "all-lts" "Try to build back to LTS 1 even"
 
-main' :: Bool -> Bool -> Maybe Snapshot -> Maybe String -> VersionSpec -> IO ()
-main' createConfig debug mnewest mcmd versionSpec = do
+run :: Bool -> Bool -> Maybe Snapshot -> Maybe String -> VersionSpec -> IO ()
+run createConfig debug mnewest mcmd versionSpec = do
   if createConfig then
     case versionSpec of
       Oldest oldest -> createStackAll oldest
