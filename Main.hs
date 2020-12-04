@@ -79,7 +79,9 @@ run createConfig debug mnewest mcmd versionSpec = do
       case versionSpec of
         DefaultVersions -> do
           oldest <- fromMaybeM (return defaultOldest) getOldestLTS
-          return $ filter (>= oldest) allSnaps
+          return $ case mnewest of
+                     Just newest | newest < oldest -> filter (newest >=) allSnaps
+                     _ -> filter (>= oldest) allSnaps
         AllVersions -> return allSnaps
         Oldest ver -> return $ filter (>= ver) allSnaps
         VersionList vers -> return vers
