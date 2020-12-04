@@ -3,6 +3,7 @@
 import Control.Monad.Extra
 import Data.Ini.Config
 import Data.List.Extra
+import Data.Maybe
 import qualified Data.Text.IO as T
 import SimpleCmd
 import SimpleCmdArgs
@@ -19,6 +20,15 @@ import Paths_stack_all (version)
 data Snapshot = LTS Int | Nightly
   deriving (Eq, Ord)
 
+-- maybeReadSnap "lts16"
+readCompactSnap :: String -> Maybe Snapshot
+readCompactSnap "nightly" = Just Nightly
+readCompactSnap snap =
+  if "lts" `isPrefixOf` snap then
+    let major = read (dropPrefix "lts" snap) in Just (LTS major)
+  else Nothing
+
+-- readSnap "lts-16"
 readSnap :: String -> Snapshot
 readSnap "nightly" = Nightly
 readSnap snap =
@@ -73,12 +83,13 @@ main' createConfig debug mnewest mcmd versionSpec = do
         AllVersions -> return allSnaps
         Oldest ver -> return $ filter (>= ver) allSnaps
         VersionList vers -> return vers
-    configs <- filter isStackConf <$> listDirectory "."
+    configs <- mapMaybe readStackConf <$> listDirectory "."
     let newestFilter = maybe id (filter . (>=)) mnewest
     mapM_ (stackBuild configs debug mcmd) (newestFilter versions)
   where
-    isStackConf :: FilePath -> Bool
-    isStackConf f = "stack-" `isPrefixOf` f && "yaml" `isExtensionOf` f
+    readStackConf :: FilePath -> Maybe Snapshot
+    readStackConf f =
+      stripPrefix "stack-" f >>= stripSuffix ".yaml" >>= readCompactSnap
 
 stackAllFile :: FilePath
 stackAllFile = ".stack-all"
@@ -108,13 +119,13 @@ getOldestLTS = do
       ini <- T.readFile inifile
       return $ either error fn $ parseIniFile ini iniparser
 
-stackBuild :: [FilePath] -> Bool -> Maybe String -> Snapshot -> IO ()
+stackBuild :: [Snapshot] -> Bool -> Maybe String -> Snapshot -> IO ()
 stackBuild configs debug mcmd snap = do
   let command = maybe ["build"] words mcmd
       config =
-        case sort (filter (snapConfig <=) configs) of
+        case sort (filter (snap <=) configs) of
           [] -> []
-          (cfg:_) -> ["--stack-yaml", cfg]
+          (cfg:_) -> ["--stack-yaml", showConfig cfg]
       args = ["-v" | debug] ++ ["--resolver", showSnap snap] ++
              config ++ command
   if debug
@@ -122,8 +133,8 @@ stackBuild configs debug mcmd snap = do
     else cmd_ "stack" args
   putStrLn ""
   where
-    snapConfig :: FilePath
-    snapConfig = "stack-" ++ compactSnap snap <.> "yaml"
+    showConfig :: Snapshot -> FilePath
+    showConfig sn = "stack-" ++ compactSnap sn <.> "yaml"
       where
         compactSnap :: Snapshot -> String
         compactSnap Nightly = "nightly"
