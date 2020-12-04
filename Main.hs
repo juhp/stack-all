@@ -78,7 +78,7 @@ run createConfig debug mnewest mcmd versionSpec = do
     versions <-
       case versionSpec of
         DefaultVersions -> do
-          oldest <- fromMaybeM (return defaultOldest) getOldestLTS
+          oldest <- fromMaybeM (return defaultOldest) readOldestLTS
           return $ case mnewest of
                      Just newest | newest < oldest -> filter (newest >=) allSnaps
                      _ -> filter (>= oldest) allSnaps
@@ -104,8 +104,8 @@ createStackAll snap = do
     writeFile stackAllFile $
       "[versions]\n# reason comment\noldest = " ++ showSnap snap ++ "\n"
 
-getOldestLTS :: IO (Maybe Snapshot)
-getOldestLTS = do
+readOldestLTS :: IO (Maybe Snapshot)
+readOldestLTS = do
   haveConfig <- doesFileExist stackAllFile
   if haveConfig then
     Just . readSnap <$> readIniConfig stackAllFile rcParser id
