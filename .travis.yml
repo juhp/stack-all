@@ -1,4 +1,7 @@
 language: haskell
+branches:
+  only:
+  - main
 cabal: 3.0
 cache:
   directories:
