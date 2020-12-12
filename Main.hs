@@ -101,8 +101,11 @@ createStackAll snap = do
   exists <- doesFileExist stackAllFile
   if exists then error' $ stackAllFile ++ " already exists"
     else do
+    let older =
+          let molder = listToMaybe $ dropWhile (>= snap) allSnaps
+          in maybe "" (\s -> showSnap s ++ " too old") molder
     writeFile stackAllFile $
-      "[versions]\n# reason comment\noldest = " ++ showSnap snap ++ "\n"
+      "[versions]\n# " ++ older ++ "\noldest = " ++ showSnap snap ++ "\n"
 
 readOldestLTS :: IO (Maybe Snapshot)
 readOldestLTS = do
