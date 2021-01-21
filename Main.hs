@@ -90,6 +90,7 @@ run createConfig debug mnewest mcmd versionSpec = do
     mapM_ (stackBuild configs debug mcmd) (newestFilter versions)
   where
     readStackConf :: FilePath -> Maybe Snapshot
+    readStackConf "stack-lts.yaml" = error' "unversioned stack-lts.yaml is unsupported"
     readStackConf f =
       stripPrefix "stack-" f >>= stripSuffix ".yaml" >>= readCompactSnap
 
