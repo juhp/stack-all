@@ -1,8 +1,9 @@
 # Revision history for stack-all
 
-## 0.1.2 (2021-01-xx)
+## 0.1.2 (2021-02-05)
 - --create-config comment line mentions older version
 - show error for unversioned "stack-lts.yaml"
+- add lts-17
 
 ## 0.1.1 (2020-12-04)
 - fix ordering of stack-lts-*.yaml

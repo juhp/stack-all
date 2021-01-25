@@ -44,7 +44,7 @@ defaultOldest :: Snapshot
 defaultOldest = LTS 11
 
 allSnaps :: [Snapshot]
-allSnaps = [Nightly, LTS 16, LTS 14, LTS 13, LTS 12, LTS 11,
+allSnaps = [Nightly, LTS 17, LTS 16, LTS 14, LTS 13, LTS 12, LTS 11,
             LTS 10, LTS 9, LTS 8, LTS 6, LTS 5, LTS 4, LTS 2, LTS 1]
 
 data VersionSpec = DefaultVersions | Oldest Snapshot | AllVersions | VersionList [Snapshot]
