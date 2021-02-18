@@ -4,6 +4,7 @@ import Control.Monad.Extra
 import Data.Ini.Config
 import Data.List.Extra
 import Data.Maybe
+import Text.Read (readMaybe)
 import qualified Data.Text.IO as T
 import SimpleCmd
 import SimpleCmdArgs
@@ -25,7 +26,9 @@ readCompactSnap :: String -> Maybe Snapshot
 readCompactSnap "nightly" = Just Nightly
 readCompactSnap snap =
   if "lts" `isPrefixOf` snap then
-    let major = read (dropPrefix "lts" snap) in Just (LTS major)
+    case readMaybe (dropPrefix "lts" snap) of
+      Just major -> Just (LTS major)
+      Nothing -> error' $ "couldn't parse compact " ++ snap ++  " (expected ltsXX)"
   else Nothing
 
 -- readSnap "lts-16"
@@ -33,7 +36,9 @@ readSnap :: String -> Snapshot
 readSnap "nightly" = Nightly
 readSnap snap =
   if "lts" `isPrefixOf` snap then
-    let major = read (dropPrefix "lts-" snap) in LTS major
+    case readMaybe (dropPrefix "lts-" snap) of
+      Just major -> LTS major
+      Nothing -> error' $ "couldn't parse " ++ snap ++ " (expected lts-XX)"
   else error' $ "malformed snapshot " ++ snap
 
 showSnap :: Snapshot -> String
