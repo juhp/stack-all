@@ -22,7 +22,7 @@ source-repository head
   location:            https://github.com/juhp/stack-all.git
 
 executable stack-all
-  main-is:             Main.hs
+  main-is:             src/Main.hs
   other-modules:       Paths_stack_all
   build-depends:       base < 5,
                        config-ini,
