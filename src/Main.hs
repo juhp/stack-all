@@ -36,7 +36,7 @@ readSnap :: String -> Snapshot
 readSnap "nightly" = Nightly
 readSnap snap =
   if "lts" `isPrefixOf` snap then
-    case readMaybe (dropPrefix "lts-" snap) of
+    case readMaybe (dropPrefix "lts-" snap) <|> readMaybe (dropPrefix "lts" snap) of
       Just major -> LTS major
       Nothing -> error' $ "couldn't parse " ++ snap ++ " (expected lts-XX)"
   else error' $ "malformed snapshot " ++ snap
