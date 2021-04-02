@@ -57,16 +57,22 @@ data VersionSpec = DefaultVersions | Oldest Snapshot | AllVersions | VersionList
 main :: IO ()
 main = do
   hSetBuffering stdout NoBuffering
-  unlessM (doesFileExist "stack.yaml") $
-    error' "no stack.yaml found"
-  simpleCmdArgs (Just version) "Build over Stackage versions"
-    "stack-all builds projects easily across different Stackage versions" $
-    run <$>
-    switchWith 'c' "create-config" "Create a project .stack-all file" <*>
-    switchWith 'd' "debug" "Verbose stack build output on error" <*>
-    optional (readSnap <$> strOptionWith 'n' "newest" "lts-MAJOR" "Newest LTS release to build from") <*>
-    optional (strOptionWith 'C' "cmd" "COMMAND" "Specify a stack command [default: build]") <*>
-    versionSpec
+  haveSYL <- doesFileExist "stack.yaml"
+  if not haveSYL
+    then do
+    cwdir <- getCurrentDirectory
+    if cwdir == "/"
+      then error' "No stack project found"
+      else setCurrentDirectory ".." >> main
+    else
+    simpleCmdArgs (Just version) "Build over Stackage versions"
+      "stack-all builds projects easily across different Stackage versions" $
+      run <$>
+      switchWith 'c' "create-config" "Create a project .stack-all file" <*>
+      switchWith 'd' "debug" "Verbose stack build output on error" <*>
+      optional (readSnap <$> strOptionWith 'n' "newest" "lts-MAJOR" "Newest LTS release to build from") <*>
+      optional (strOptionWith 'C' "cmd" "COMMAND" "Specify a stack command [default: build]") <*>
+      versionSpec
   where
     versionSpec =
       Oldest . readSnap <$> strOptionWith 'o' "oldest" "lts-MAJOR" "Oldest compatible LTS release" <|>
