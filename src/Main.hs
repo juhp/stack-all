@@ -73,35 +73,36 @@ data VersionLimit = DefaultLimit | Oldest Snapshot | AllVersions
 main :: IO ()
 main = do
   hSetBuffering stdout NoBuffering
+  simpleCmdArgs' (Just version) "Build over Stackage versions"
+    "stack-all builds projects easily across different Stackage versions" $
+    run <$>
+    switchWith 'c' "create-config" "Create a project .stack-all file" <*>
+    switchWith 'd' "debug" "Verbose stack build output on error" <*>
+    optional (readSnap <$> strOptionWith 'n' "newest" "lts-MAJOR" "Newest LTS release to build from") <*>
+    (Oldest . readSnap <$> strOptionWith 'o' "oldest" "lts-MAJOR" "Oldest compatible LTS release" <|>
+     flagWith DefaultLimit AllVersions 'a' "all-lts" "Try to build back to LTS 1 even") <*>
+    many (strArg "SNAPSHOT... [COMMAND...]")
+
+run :: Bool -> Bool -> Maybe Snapshot -> VersionLimit -> [String] -> IO ()
+run createconfig debug mnewest verlimit verscmd = do
   haveSYL <- doesFileExist "stack.yaml"
   if not haveSYL
     then do
     cwdir <- getCurrentDirectory
     if cwdir == "/"
       then error' "No stack project found"
-      else setCurrentDirectory ".." >> main
+      else setCurrentDirectory ".." >>
+           run createconfig debug mnewest verlimit verscmd
     else
-    simpleCmdArgs' (Just version) "Build over Stackage versions"
-      "stack-all builds projects easily across different Stackage versions" $
-      run <$>
-      switchWith 'c' "create-config" "Create a project .stack-all file" <*>
-      switchWith 'd' "debug" "Verbose stack build output on error" <*>
-      optional (readSnap <$> strOptionWith 'n' "newest" "lts-MAJOR" "Newest LTS release to build from") <*>
-      (Oldest . readSnap <$> strOptionWith 'o' "oldest" "lts-MAJOR" "Oldest compatible LTS release" <|>
-       flagWith DefaultLimit AllVersions 'a' "all-lts" "Try to build back to LTS 1 even") <*>
-      many (strArg "SNAPSHOT... [COMMAND]...")
-
-run :: Bool -> Bool -> Maybe Snapshot -> VersionLimit -> [String] -> IO ()
-run createconfig debug mnewest verlimit verscmd = do
-  if createconfig then
-    case verlimit of
-      Oldest oldest -> createStackAll oldest
-      _ -> error' "creating .stack-all requires --oldest LTS"
-    else do
-    (versions, cs) <- getVersionsCmd
-    configs <- mapMaybe readStackConf <$> listDirectory "."
-    let newestFilter = maybe id (filter . (>=)) mnewest
-    mapM_ (stackBuild configs debug cs) (newestFilter versions)
+    if createconfig then
+      case verlimit of
+        Oldest oldest -> createStackAll oldest
+        _ -> error' "creating .stack-all requires --oldest LTS"
+      else do
+      (versions, cs) <- getVersionsCmd
+      configs <- mapMaybe readStackConf <$> listDirectory "."
+      let newestFilter = maybe id (filter . (>=)) mnewest
+      mapM_ (stackBuild configs debug cs) (newestFilter versions)
   where
     readStackConf :: FilePath -> Maybe Snapshot
     readStackConf "stack-lts.yaml" = error' "unversioned stack-lts.yaml is unsupported"
