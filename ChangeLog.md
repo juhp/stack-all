@@ -1,5 +1,11 @@
 # Revision history for stack-all
 
+## 0.2 (2021-04-03)
+- better error messages when reading snapshot option/arg (TristanCacqueray)
+- search parent dirs for stack project dir, like stack
+- snapshot options/args can now be in compact ltsXY form as well as lts-XY
+- support stack commands and options
+
 ## 0.1.2 (2021-02-05)
 - --create-config comment line mentions older version
 - show error for unversioned "stack-lts.yaml"
