@@ -166,11 +166,16 @@ stackBuild configs debug command snap = do
         case sort (filter (snap <=) configs) of
           [] -> []
           (cfg:_) -> ["--stack-yaml", showConfig cfg]
-      args = ["-v" | debug] ++ ["--resolver", showSnap snap] ++
-             config ++ command
+      opts = ["-v" | debug] ++ ["--resolver", showSnap snap] ++
+             config
   if debug
-    then debugBuild args
-    else cmd_ "stack" args
+    then debugBuild $ opts ++ command
+    else do
+    ok <- cmdBool "stack" $ opts ++ command
+    unless ok $ do
+      putStr "\nsnapshot-pkg-db: "
+      cmd_ "stack" $ "--silent" : opts ++ ["path", "--snapshot-pkg-db"]
+      error' $ "failed for " ++ showSnap snap
   putStrLn ""
   where
     showConfig :: Snapshot -> FilePath
