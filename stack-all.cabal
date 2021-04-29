@@ -2,7 +2,7 @@ name:                stack-all
 version:             0.2.1
 synopsis:            CLI tool for building across Stackage major versions
 description:
-        Build your Haskell project over Stackage major versions.
+        Build your Haskell project over Stackage major LTS versions.
 license:             BSD3
 license-file:        LICENSE
 author:              Jens Petersen <juhpetersen@gmail.com>

@@ -47,7 +47,7 @@ This specifies that the oldest lts version to build for is lts-13.
 You can abbreviate `lts-XX` args to `ltsXX` on the commandline.
 
 There are `--oldest`  and `--newest` options to specify the range of
-lts versions to build over.
+lts versions to build over:
 
 You can specify the oldest major lts to build for with eg `stack-all -o lts13`.
 Otherwise if not configured the default oldest lts is currently `lts-11`.
@@ -61,7 +61,8 @@ as arguments: eg `stack-all lts14` if you only wish to build that version.
 ### Running other stack commands
 By default `stack-all` just runs the stack `build` command over lts versions.
 
-You can also specify stack commands and options on the command line: eg
+You can also specify the stack command to run and its options on the commandline:
+eg
 ```
 $ stack-all test --no-rerun-tests
 ```
