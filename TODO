@@ -1,2 +1,9 @@
 - automatically determine latest LTS
 - config for list of snaps
+
+- stack-nightly.yaml
+
+- config for default lts
+- option to only build default lts
+
+- global default oldest lts

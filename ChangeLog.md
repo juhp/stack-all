@@ -1,5 +1,8 @@
 # Revision history for stack-all
 
+## 0.2.1 (2021-04-30)
+- if stack fails, print the ~/.stack snapshot path for reference
+
 ## 0.2 (2021-04-03)
 - better error messages when reading snapshot option/arg (TristanCacqueray)
 - search parent dirs for stack project dir, like stack
