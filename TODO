@@ -1,9 +1,13 @@
-- automatically determine latest LTS
+- automatically determine latest major LTS version
 - config for list of snaps
 
-- stack-nightly.yaml
+- support stack-nightly.yaml
 
 - config for default lts
 - option to only build default lts
 
-- global default oldest lts
+- global config for default oldest lts
+- option to continue building after failure??
+- option to skip stack path on failure?
+
+- dummy stack.yaml to allow running without any project stack file.
