@@ -9,11 +9,11 @@ This is how I do my Haskell "build ci" now locally.
 `stack-all` by default runs `stack build` over
 recent Stackage LTS major versions and Nightly
 (current default is nightly, lts-17, lts-16, lts-14,... , lts-11)
-corresponding to the latest major ghc minor verions.
+corresponding to latest major ghc minor versions.
 
 `stack-all` can use `stack-ltsXX.yaml` files to override the default `stack.yaml`
 file for particular lts major versions. Note that a `stack-ltsXX.yaml` file
-will also be used for earlier lts major version until
+will also be used for earlier lts major versions until
 another `stack-ltsYY.yaml` file is found.
 For example if you have `stack-lts14.yaml` and `stack-lts12.yaml` files in your
 project, then `stack.yaml` will be used as normal to build nightly, lts-17 and lts-16, `stack-lts14.yaml` will be used for building lts-14 and lts-13,
@@ -40,10 +40,14 @@ $ stack-all test
 ```
 will run `stack test` over the LTS versions (instead of `stack build`).
 
+Note you can abbreviate `lts-XX` to `ltsXX` and you can also specify specific lts version(s) to build for, like `stack-all lts14` if you wish.
+
 Happy stack building!
 
 ## Install
-Run `stack install` or `cabal install` in the source.
+The project is released on Hackage.
 
-## Contribute or discuss
-at https://github.com/juhp/stack-all
+You can also build from source with `stack install` or `cabal install`.
+
+## Collaboration
+The project is hosted at https://github.com/juhp/stack-all under BSD license.
