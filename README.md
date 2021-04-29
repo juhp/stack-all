@@ -9,30 +9,36 @@ This is how I do my Haskell "build ci" now locally.
 `stack-all` by default runs `stack build` over
 recent Stackage LTS major versions and Nightly
 (current default is nightly, lts-17, lts-16, lts-14,... , lts-11)
-corresponding to latest major ghc minor verions.
+corresponding to the latest major ghc minor verions.
 
-Note that stack-all will automatically use `stack-ltsXX.yaml`,
-even for older lts releases:
-eg say you have `stack-lts14.yaml` in your project,
-then it will also be used for building lts-13
-(unless you have a `stack-lts13.yaml` config file of course).
-(Other versioned stack.yaml filenames like stack-ghc-8.8.yaml are not
-supported currently.)
+`stack-all` can use `stack-ltsXX.yaml` files to override the default `stack.yaml`
+file for particular lts major versions. Note that a `stack-ltsXX.yaml` file
+will also be used for earlier lts major version until
+another `stack-ltsYY.yaml` file is found.
+For example if you have `stack-lts14.yaml` and `stack-lts12.yaml` files in your
+project, then `stack.yaml` will be used as normal to build nightly, lts-17 and lts-16, `stack-lts14.yaml` will be used for building lts-14 and lts-13,
+and then `stack-lts12.yaml` will be used for lts-12, lts-11 (and earlier).
 
-You can specify the oldest working LTS for a project with
-`stack-all -o lts-13` or set it in a `.stack-all` file containing:
+(Note that other versioned stack.yaml filenames like stack-ghc-8.8.yaml
+are not currently supported.)
+
+You can set the oldest working LTS major version for a project in
+a `.stack-all` config file in your project. For example:
 ```
 [versions]
-# lts-12 foo-bar too old
+# lts-12 foo-bar lib too old
 oldest = lts-13
 ```
-which can be created with `stack-all -c -o lts-13`.
+specifies that the oldest version to build for is lts-13.
+This config file can be generated with `stack-all -c -o lts-13`.
+You can also specify the oldest lts to build on the commandline,
+eg `stack-all -o lts-13`.
 
-You can also pass stack commands and options on the command line: eg
+stack commands and options can also be passed on the command line: eg
 ```
 $ stack-all test
 ```
-will run `stack test` over the LTS versions, etc (instead of `stack build`).
+will run `stack test` over the LTS versions (instead of `stack build`).
 
 Happy stack building!
 
