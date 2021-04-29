@@ -27,7 +27,7 @@ executable stack-all
   other-modules:       Paths_stack_all
   build-depends:       base < 5,
                        config-ini,
-                       directory,
+                       directory >= 1.2.5,
                        extra >= 1.6.15,
                        filepath,
                        process,
