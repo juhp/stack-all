@@ -10,4 +10,4 @@
 - option to continue building after failure??
 - option to skip stack path on failure?
 
-- dummy stack.yaml to allow running without any project stack file.
+- print ghc versions

@@ -85,25 +85,37 @@ main = do
 
 run :: Bool -> Bool -> Maybe Snapshot -> VersionLimit -> [String] -> IO ()
 run createconfig debug mnewest verlimit verscmd = do
-  haveSYL <- doesFileExist "stack.yaml"
-  if not haveSYL
-    then do
-    cwdir <- getCurrentDirectory
-    if cwdir == "/"
-      then error' "No stack project found"
-      else setCurrentDirectory ".." >>
-           run createconfig debug mnewest verlimit verscmd
-    else
-    if createconfig then
-      case verlimit of
-        Oldest oldest -> createStackAll oldest
-        _ -> error' "creating .stack-all requires --oldest LTS"
-      else do
-      (versions, cs) <- getVersionsCmd
-      configs <- mapMaybe readStackConf <$> listDirectory "."
-      let newestFilter = maybe id (filter . (>=)) mnewest
-      mapM_ (stackBuild configs debug cs) (newestFilter versions)
+  findStackProjectDir Nothing
+  if createconfig then
+    case verlimit of
+      Oldest oldest -> createStackAll oldest
+      _ -> error' "creating .stack-all requires --oldest LTS"
+    else do
+    (versions, cs) <- getVersionsCmd
+    configs <- mapMaybe readStackConf <$> listDirectory "."
+    let newestFilter = maybe id (filter . (>=)) mnewest
+    mapM_ (stackBuild configs debug cs) (newestFilter versions)
   where
+    findStackProjectDir :: Maybe FilePath -> IO ()
+    findStackProjectDir mcwd = do
+      haveStackYaml <- doesFileExist "stack.yaml"
+      if haveStackYaml
+        then return ()
+        else do
+        cwdir <- getCurrentDirectory
+        if cwdir /= "/"
+          then setCurrentDirectory ".." >>
+               findStackProjectDir (if isJust mcwd then mcwd else Just cwdir)
+          else do
+          putStrLn "stack.yaml not found"
+          whenJust mcwd setCurrentDirectory
+          haveCabalFile <- fileWithExtension_ "." ".cabal"
+          if haveCabalFile
+            then do
+            unlessM (cmdBool "stack" ["init"]) $
+              writeFile "stack.yaml" "resolver: lts-16.31\n"
+            else error' "no package/project found"
+
     readStackConf :: FilePath -> Maybe Snapshot
     readStackConf "stack-lts.yaml" = error' "unversioned stack-lts.yaml is unsupported"
     readStackConf f =
@@ -195,3 +207,28 @@ stackBuild configs debug command snap = do
         -- stack verbose includes info line with all stackages (> 500kbytes)
         mapM_ putStrLn $ filter ((<10000) . length) . lines $ err
         error' $ showSnap snap ++ " build failed"
+
+
+-- taken from cabal-rpm FileUtils:
+
+filesWithExtension :: FilePath -- directory
+                   -> String   -- file extension
+                   -> IO [FilePath]
+filesWithExtension dir ext =
+  filter (\ f -> takeExtension f == ext) <$> getDirectoryContents dir
+
+-- looks in dir for a unique file with given extension
+fileWithExtension :: FilePath -- directory
+                  -> String   -- file extension
+                  -> IO (Maybe FilePath)
+fileWithExtension dir ext = do
+  files <- filesWithExtension dir ext
+  case files of
+       [file] -> return $ Just $ dir </> file
+       [] -> return Nothing
+       _ -> putStrLn ("More than one " ++ ext ++ " file found!") >> return Nothing
+
+-- looks in current dir for a unique file with given extension
+fileWithExtension_ :: FilePath -> String -> IO Bool
+fileWithExtension_ dir ext =
+  isJust <$> fileWithExtension dir ext
