@@ -1,5 +1,8 @@
 # Revision history for stack-all
 
+## 0.2.2 (2021-06-07)
+- create a stack.yaml file if only an .cabal file is found
+
 ## 0.2.1 (2021-04-30)
 - if stack fails, print the ~/.stack snapshot path for reference
 

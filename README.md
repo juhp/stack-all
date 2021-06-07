@@ -12,6 +12,11 @@ recent Stackage LTS major versions and Nightly
 corresponding to latest major ghc minor versions,
 using the stack's `--resolver` option.
 
+Note that `stack` only works if a `stack.yaml` file exists.
+If no `stack.yaml` file is found, `stack-all` will create one.
+Of course it may still fail to build, but this allows for
+quickly trying to build a package that does not include stack support.
+
 ### Overriding stack.yaml
 `stack-all` can use `stack-ltsXX.yaml` files to override the default `stack.yaml`
 file for particular lts major versions. Note that a `stack-ltsXX.yaml` file
