@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings, CPP #-}
 
 import Control.Monad.Extra
 import Data.Either
@@ -109,7 +109,7 @@ run createconfig debug mnewest verlimit verscmd = do
           else do
           putStrLn "stack.yaml not found"
           whenJust mcwd setCurrentDirectory
-          haveCabalFile <- fileWithExtension_ "." ".cabal"
+          haveCabalFile <- doesFileExistWithExtension "." ".cabal"
           if haveCabalFile
             then do
             unlessM (cmdBool "stack" ["init"]) $
@@ -215,7 +215,7 @@ filesWithExtension :: FilePath -- directory
                    -> String   -- file extension
                    -> IO [FilePath]
 filesWithExtension dir ext =
-  filter (\ f -> takeExtension f == ext) <$> getDirectoryContents dir
+  filter (ext `isExtensionOf`) <$> listDirectory dir
 
 -- looks in dir for a unique file with given extension
 fileWithExtension :: FilePath -- directory
@@ -229,6 +229,12 @@ fileWithExtension dir ext = do
        _ -> putStrLn ("More than one " ++ ext ++ " file found!") >> return Nothing
 
 -- looks in current dir for a unique file with given extension
-fileWithExtension_ :: FilePath -> String -> IO Bool
-fileWithExtension_ dir ext =
+doesFileExistWithExtension :: FilePath -> String -> IO Bool
+doesFileExistWithExtension dir ext =
   isJust <$> fileWithExtension dir ext
+
+#if !MIN_VERSION_filepath(1,4,2)
+isExtensionOf :: String -> FilePath -> Bool
+isExtensionOf ext@('.':_) = isSuffixOf ext . takeExtensions
+isExtensionOf ext         = isSuffixOf ('.':ext) . takeExtensions
+#endif
