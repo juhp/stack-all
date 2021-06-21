@@ -112,6 +112,8 @@ run createconfig debug mnewest verlimit verscmd = do
           haveCabalFile <- doesFileExistWithExtension "." ".cabal"
           if haveCabalFile
             then do
+            -- FIXME take suggested extra-deps into stack.yaml
+            -- FIXME stack init content too verbose
             unlessM (cmdBool "stack" ["init"]) $
               writeFile "stack.yaml" "resolver: lts-16.31\n"
             else error' "no package/project found"
