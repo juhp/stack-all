@@ -1,14 +1,11 @@
 {-# LANGUAGE OverloadedStrings, CPP #-}
 
 import Control.Monad.Extra
-import Data.Aeson.Types
 import Data.Either
-import qualified Data.HashMap.Strict as H
 import Data.Ini.Config
 import Data.List.Extra
 import Data.Maybe
 import Data.Tuple (swap)
-import Network.HTTP.Query
 import SimpleCmd
 import SimpleCmdArgs
 import System.Directory
@@ -16,26 +13,11 @@ import System.Exit
 import System.FilePath
 import System.IO
 import System.Process
-import Text.Read (readMaybe)
-import qualified Data.Text as T
 import qualified Data.Text.IO as T
 
 import Paths_stack_all (version)
-
--- FIXME allow specific snapshots?
--- FIXME lts latest
-data Snapshot = LTS Int | Nightly
-  deriving (Eq, Ord)
-
--- readCompactSnap "lts16"
-readCompactSnap :: String -> Maybe Snapshot
-readCompactSnap "nightly" = Just Nightly
-readCompactSnap snap =
-  if "lts" `isPrefixOf` snap then
-    case readMaybe (dropPrefix "lts" snap) of
-      Just major -> Just (LTS major)
-      Nothing -> error' $ "couldn't parse compact " ++ snap ++  " (expected ltsXX)"
-  else Nothing
+import Snapshots
+import Types
 
 eitherReadSnap :: String -> Either String Snapshot
 eitherReadSnap cs =
@@ -43,41 +25,12 @@ eitherReadSnap cs =
     Just s -> Right s
     _ -> Left cs
 
-maybeReadSnap :: String -> Maybe Snapshot
-maybeReadSnap "nightly" = Just Nightly
-maybeReadSnap snap =
-  if "lts" `isPrefixOf` snap then
-    case readMaybe (dropPrefix "lts-" snap) <|> readMaybe (dropPrefix "lts" snap) of
-      Just major -> Just (LTS major)
-      Nothing -> Nothing
-  else Nothing
-
--- readSnap "lts-16"
-readSnap :: String -> Snapshot
-readSnap "nightly" = Nightly
-readSnap snap =
-  case maybeReadSnap snap of
-    Just s -> s
-    Nothing ->
-      error' $ "couldn't parse " ++ snap ++ " (expected lts-XX or ltsXX)"
-
-showSnap :: Snapshot -> String
-showSnap Nightly = "nightly"
-showSnap (LTS ver) = "lts-" ++ show ver
-
 defaultOldest :: Snapshot
 defaultOldest = LTS 11
 
-excludedSnaps :: [Snapshot]
-excludedSnaps = [LTS 15, LTS 7, LTS 3, LTS 0]
-
--- FIXME cache json daily
-getAllSnaps :: IO [Snapshot]
-getAllSnaps = do
-  obj <- webAPIQuery "https://haddock.stackage.org/snapshots.json" [] :: IO Object
-  return $ reverse . sort $ map (readSnap . T.unpack) (H.keys obj \\ ["lts"]) \\ excludedSnaps
-
 data VersionLimit = DefaultLimit | Oldest Snapshot | AllVersions
+
+data Command = CreateConfig | MakeStackLTS | DefaultRun
 
 main :: IO ()
 main = do
@@ -85,25 +38,32 @@ main = do
   simpleCmdArgs' (Just version) "Build over Stackage versions"
     "stack-all builds projects easily across different Stackage versions" $
     run <$>
-    switchWith 'c' "create-config" "Create a project .stack-all file" <*>
+    (flagWith' CreateConfig 'c' "create-config" "Create a project .stack-all file" <|>
+     flagWith DefaultRun MakeStackLTS 's' "make-lts" "Create a stack-ltsXX.yaml file") <*>
     switchWith 'd' "debug" "Verbose stack build output on error" <*>
     optional (readSnap <$> strOptionWith 'n' "newest" "lts-MAJOR" "Newest LTS release to build from") <*>
     (Oldest . readSnap <$> strOptionWith 'o' "oldest" "lts-MAJOR" "Oldest compatible LTS release" <|>
      flagWith DefaultLimit AllVersions 'a' "all-lts" "Try to build back to LTS 1 even") <*>
     many (strArg "SNAPSHOT... [COMMAND...]")
 
-run :: Bool -> Bool -> Maybe Snapshot -> VersionLimit -> [String] -> IO ()
-run createconfig debug mnewest verlimit verscmd = do
+run :: Command -> Bool -> Maybe Snapshot -> VersionLimit -> [String] -> IO ()
+run command debug mnewest verlimit verscmd = do
   findStackProjectDir Nothing
-  if createconfig then
-    case verlimit of
-      Oldest oldest -> createStackAll oldest
-      _ -> error' "creating .stack-all requires --oldest LTS"
-    else do
-    (versions, cargs) <- getVersionsCmd
-    configs <- mapMaybe readStackConf <$> listDirectory "."
-    let newestFilter = maybe id (filter . (>=)) mnewest
-    mapM_ (stackBuild configs debug cargs) (newestFilter versions)
+  case command of
+    CreateConfig ->
+      case verlimit of
+        Oldest oldest -> createStackAll oldest
+        _ -> error' "creating .stack-all requires --oldest LTS"
+    MakeStackLTS -> do
+      (versions, _) <- getVersionsCmd
+      if null versions
+        then error' "--make-lts needs an LTS major version"
+        else makeStackLTS versions
+    DefaultRun -> do
+      (versions, cargs) <- getVersionsCmd
+      configs <- mapMaybe readStackConf <$> listDirectory "."
+      let newestFilter = maybe id (filter . (>=)) mnewest
+      mapM_ (stackBuild configs debug cargs) (newestFilter versions)
   where
     findStackProjectDir :: Maybe FilePath -> IO ()
     findStackProjectDir mcwd = do
@@ -127,11 +87,6 @@ run createconfig debug mnewest verlimit verscmd = do
               writeFile "stack.yaml" "resolver: lts-16.31\n"
             else error' "no package/project found"
 
-    readStackConf :: FilePath -> Maybe Snapshot
-    readStackConf "stack-lts.yaml" = error' "unversioned stack-lts.yaml is unsupported"
-    readStackConf f =
-      stripPrefix "stack-" f >>= stripSuffix ".yaml" >>= readCompactSnap
-
     getVersionsCmd :: IO ([Snapshot],[String])
     getVersionsCmd = do
       let partitionSnaps = swap . partitionEithers . map eitherReadSnap
@@ -152,6 +107,11 @@ run createconfig debug mnewest verlimit verscmd = do
             Oldest ver -> return $ filter (>= ver) allSnaps
         else return verlist
       return (versions,if null cmds then ["build"] else cmds)
+
+readStackConf :: FilePath -> Maybe Snapshot
+readStackConf "stack-lts.yaml" = error' "unversioned stack-lts.yaml is unsupported"
+readStackConf f =
+  stripPrefix "stack-" f >>= stripSuffix ".yaml" >>= readCompactSnap
 
 stackAllFile :: FilePath
 stackAllFile = ".stack-all"
@@ -185,6 +145,28 @@ readOldestLTS = do
       ini <- T.readFile inifile
       return $ either error fn $ parseIniFile ini iniparser
 
+makeStackLTS :: [Snapshot] -> IO ()
+makeStackLTS snaps = do
+  configs <- mapMaybe readStackConf <$> listDirectory "."
+  forM_ snaps $ \ snap -> do
+    if snap `elem` configs
+      then error' $ showConfig snap ++ " already exists!"
+      else do
+      let mcurrentconfig =
+            listToMaybe $ sort (filter (snap <=) configs)
+      case mcurrentconfig of
+        Nothing -> copyFile "stack.yaml" (showConfig snap)
+        Just conf -> copyFile (showConfig conf) (showConfig snap)
+      whenJustM (latestSnapshot snap) $ \latest ->
+        cmd_ "sed" ["-i", "-e", "s/\\(resolver:\\) .*/\\1 " ++ latest ++ "/", showConfig snap]
+
+showConfig :: Snapshot -> FilePath
+showConfig sn = "stack-" ++ compactSnap sn <.> "yaml"
+  where
+    compactSnap :: Snapshot -> String
+    compactSnap Nightly = "nightly"
+    compactSnap (LTS ver) = "lts" ++ show ver
+
 stackBuild :: [Snapshot] -> Bool -> [String] -> Snapshot -> IO ()
 stackBuild configs debug command snap = do
   let config =
@@ -203,13 +185,6 @@ stackBuild configs debug command snap = do
       error' $ "failed for " ++ showSnap snap
   putStrLn ""
   where
-    showConfig :: Snapshot -> FilePath
-    showConfig sn = "stack-" ++ compactSnap sn <.> "yaml"
-      where
-        compactSnap :: Snapshot -> String
-        compactSnap Nightly = "nightly"
-        compactSnap (LTS ver) = "lts" ++ show ver
-
     debugBuild :: [String] -> IO ()
     debugBuild args = do
       putStr $ "stack " ++ unwords args
