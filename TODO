@@ -1,4 +1,3 @@
-- automatically determine latest major LTS version
 - config for list of snaps
 
 - support stack-nightly.yaml

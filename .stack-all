@@ -1,3 +1,4 @@
 [versions]
-# optparse-applicative-0.13.2.0 < 0.14.1
-oldest = lts-10
+# lts9 optparse-applicative-0.13.2.0 < 0.14.1
+# lts10 http-query: requestFromURI_
+oldest = lts-11

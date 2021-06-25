@@ -1,13 +1,14 @@
 {-# LANGUAGE OverloadedStrings, CPP #-}
 
 import Control.Monad.Extra
+import Data.Aeson.Types
 import Data.Either
+import qualified Data.HashMap.Strict as H
 import Data.Ini.Config
 import Data.List.Extra
 import Data.Maybe
 import Data.Tuple (swap)
-import Text.Read (readMaybe)
-import qualified Data.Text.IO as T
+import Network.HTTP.Query
 import SimpleCmd
 import SimpleCmdArgs
 import System.Directory
@@ -15,6 +16,9 @@ import System.Exit
 import System.FilePath
 import System.IO
 import System.Process
+import Text.Read (readMaybe)
+import qualified Data.Text as T
+import qualified Data.Text.IO as T
 
 import Paths_stack_all (version)
 
@@ -64,9 +68,14 @@ showSnap (LTS ver) = "lts-" ++ show ver
 defaultOldest :: Snapshot
 defaultOldest = LTS 11
 
-allSnaps :: [Snapshot]
-allSnaps = [Nightly, LTS 17, LTS 16, LTS 14, LTS 13, LTS 12, LTS 11,
-            LTS 10, LTS 9, LTS 8, LTS 6, LTS 5, LTS 4, LTS 2, LTS 1]
+excludedSnaps :: [Snapshot]
+excludedSnaps = [LTS 15, LTS 7, LTS 3, LTS 0]
+
+-- FIXME cache json daily
+getAllSnaps :: IO [Snapshot]
+getAllSnaps = do
+  obj <- webAPIQuery "https://haddock.stackage.org/snapshots.json" [] :: IO Object
+  return $ reverse . sort $ map (readSnap . T.unpack) (H.keys obj \\ ["lts"]) \\ excludedSnaps
 
 data VersionLimit = DefaultLimit | Oldest Snapshot | AllVersions
 
@@ -127,6 +136,7 @@ run createconfig debug mnewest verlimit verscmd = do
     getVersionsCmd = do
       let partitionSnaps = swap . partitionEithers . map eitherReadSnap
           (verlist,cmds) = partitionSnaps verscmd
+      allSnaps <- getAllSnaps
       versions <-
         if null verlist then
           case verlimit of
@@ -151,6 +161,7 @@ createStackAll snap = do
   exists <- doesFileExist stackAllFile
   if exists then error' $ stackAllFile ++ " already exists"
     else do
+    allSnaps <- getAllSnaps
     let older =
           let molder = listToMaybe $ dropWhile (>= snap) allSnaps
           in maybe "" (\s -> showSnap s ++ " too old") molder
