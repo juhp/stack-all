@@ -100,10 +100,10 @@ run createconfig debug mnewest verlimit verscmd = do
       Oldest oldest -> createStackAll oldest
       _ -> error' "creating .stack-all requires --oldest LTS"
     else do
-    (versions, cs) <- getVersionsCmd
+    (versions, cargs) <- getVersionsCmd
     configs <- mapMaybe readStackConf <$> listDirectory "."
     let newestFilter = maybe id (filter . (>=)) mnewest
-    mapM_ (stackBuild configs debug cs) (newestFilter versions)
+    mapM_ (stackBuild configs debug cargs) (newestFilter versions)
   where
     findStackProjectDir :: Maybe FilePath -> IO ()
     findStackProjectDir mcwd = do
