@@ -91,7 +91,7 @@ run command debug mnewest verlimit verscmd = do
     getVersionsCmd = do
       let partitionSnaps = swap . partitionEithers . map eitherReadSnap
           (verlist,cmds) = partitionSnaps verscmd
-      allSnaps <- getAllSnaps
+      allSnaps <- getStreams
       versions <-
         if null verlist then
           case verlimit of
@@ -121,7 +121,7 @@ createStackAll snap = do
   exists <- doesFileExist stackAllFile
   if exists then error' $ stackAllFile ++ " already exists"
     else do
-    allSnaps <- getAllSnaps
+    allSnaps <- getStreams
     let older =
           let molder = listToMaybe $ dropWhile (>= snap) allSnaps
           in maybe "" (\s -> showSnap s ++ " too old") molder
@@ -173,17 +173,21 @@ stackBuild configs debug command snap = do
         case sort (filter (snap <=) configs) of
           [] -> []
           (cfg:_) -> ["--stack-yaml", showConfig cfg]
-      opts = ["-v" | debug] ++ ["--resolver", showSnap snap] ++
-             config
-  if debug
-    then debugBuild $ opts ++ command
-    else do
-    ok <- cmdBool "stack" $ opts ++ command
-    unless ok $ do
-      putStr "\nsnapshot-pkg-db: "
-      cmd_ "stack" $ "--silent" : opts ++ ["path", "--snapshot-pkg-db"]
-      error' $ "failed for " ++ showSnap snap
-  putStrLn ""
+  latest <- latestSnapshot snap
+  case latest of
+    Nothing -> error' $ "no snapshot not found for " ++ showSnap snap
+    Just minor -> do
+      let opts = ["-v" | debug] ++ ["--resolver", minor] ++ config
+      putStrLn $ "# " ++ minor
+      if debug
+        then debugBuild $ opts ++ command
+        else do
+        ok <- cmdBool "stack" $ opts ++ command
+        unless ok $ do
+          putStr "\nsnapshot-pkg-db: "
+          cmd_ "stack" $ "--silent" : opts ++ ["path", "--snapshot-pkg-db"]
+          error' $ "failed for " ++ showSnap snap
+      putStrLn ""
   where
     debugBuild :: [String] -> IO ()
     debugBuild args = do
