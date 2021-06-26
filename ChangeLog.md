@@ -1,4 +1,11 @@
-# Revision history for stack-all
+# Release history for stack-all
+
+## 0.3 (2021-06-26)
+- use hackage.stackage.org/snapshots.json:
+  - to determine the latest LTS major version
+  - to resolve major LTS version to latest minor snapshot and also print it
+- cache snapshots.json locally in ~/.cache/stack-all/ for a few hours
+- new --make-lts command to generate a stack-ltsXX.yaml file from newer one
 
 ## 0.2.2 (2021-06-07)
 - create a stack.yaml file if only an .cabal file is found

@@ -1,10 +1,9 @@
 - config for list of snaps
-
-- support stack-nightly.yaml
-
 - config for default lts
-- option to only build default lts
 
+- support stack-nightly.yaml (we don't?)
+
+- option to only build default lts
 - global config for default oldest lts
 - option to continue building after failure??
 - option to skip stack path on failure?
