@@ -15,20 +15,14 @@ import System.IO
 import System.Process
 import qualified Data.Text.IO as T
 
+import MajorVer
 import Paths_stack_all (version)
 import Snapshots
-import Types
 
-eitherReadSnap :: String -> Either String Snapshot
-eitherReadSnap cs =
-  case maybeReadSnap cs of
-    Just s -> Right s
-    _ -> Left cs
-
-defaultOldest :: Snapshot
+defaultOldest :: MajorVer
 defaultOldest = LTS 11
 
-data VersionLimit = DefaultLimit | Oldest Snapshot | AllVersions
+data VersionLimit = DefaultLimit | Oldest MajorVer | AllVersions
 
 data Command = CreateConfig | MakeStackLTS | DefaultRun
 
@@ -41,12 +35,12 @@ main = do
     (flagWith' CreateConfig 'c' "create-config" "Create a project .stack-all file" <|>
      flagWith DefaultRun MakeStackLTS 's' "make-lts" "Create a stack-ltsXX.yaml file") <*>
     switchWith 'd' "debug" "Verbose stack build output on error" <*>
-    optional (readSnap <$> strOptionWith 'n' "newest" "lts-MAJOR" "Newest LTS release to build from") <*>
-    (Oldest . readSnap <$> strOptionWith 'o' "oldest" "lts-MAJOR" "Oldest compatible LTS release" <|>
+    optional (readMajor <$> strOptionWith 'n' "newest" "MAJOR" "Newest LTS release to build from") <*>
+    (Oldest . readMajor <$> strOptionWith 'o' "oldest" "MAJOR" "Oldest compatible LTS release" <|>
      flagWith DefaultLimit AllVersions 'a' "all-lts" "Try to build back to LTS 1 even") <*>
-    many (strArg "SNAPSHOT... [COMMAND...]")
+    many (strArg "MAJORVER... [COMMAND...]")
 
-run :: Command -> Bool -> Maybe Snapshot -> VersionLimit -> [String] -> IO ()
+run :: Command -> Bool -> Maybe MajorVer -> VersionLimit -> [String] -> IO ()
 run command debug mnewest verlimit verscmd = do
   findStackProjectDir Nothing
   case command of
@@ -84,14 +78,15 @@ run command debug mnewest verlimit verscmd = do
             -- FIXME take suggested extra-deps into stack.yaml
             -- FIXME stack init content too verbose
             unlessM (cmdBool "stack" ["init"]) $
-              writeFile "stack.yaml" "resolver: lts-16.31\n"
+              -- FIXME determine latest stable snapshot automatically
+              writeFile "stack.yaml" "resolver: lts-17.15\n"
             else error' "no package/project found"
 
-    getVersionsCmd :: IO ([Snapshot],[String])
+    getVersionsCmd :: IO ([MajorVer],[String])
     getVersionsCmd = do
-      let partitionSnaps = swap . partitionEithers . map eitherReadSnap
-          (verlist,cmds) = partitionSnaps verscmd
-      allSnaps <- getStreams
+      let partitionMajors = swap . partitionEithers . map eitherReadMajor
+          (verlist,cmds) = partitionMajors verscmd
+      allMajors <- getMajorVers
       versions <-
         if null verlist then
           case verlimit of
@@ -100,39 +95,39 @@ run command debug mnewest verlimit verscmd = do
               return $ case mnewest of
                          Just newest ->
                            if newest < oldest
-                           then filter (newest >=) allSnaps
-                           else filter (\ s ->  s >= oldest && newest >= s) allSnaps
-                         Nothing -> filter (>= oldest) allSnaps
-            AllVersions -> return allSnaps
-            Oldest ver -> return $ filter (>= ver) allSnaps
+                           then filter (newest >=) allMajors
+                           else filter (\ s ->  s >= oldest && newest >= s) allMajors
+                         Nothing -> filter (>= oldest) allMajors
+            AllVersions -> return allMajors
+            Oldest ver -> return $ filter (>= ver) allMajors
         else return verlist
       return (versions,if null cmds then ["build"] else cmds)
 
-readStackConf :: FilePath -> Maybe Snapshot
+readStackConf :: FilePath -> Maybe MajorVer
 readStackConf "stack-lts.yaml" = error' "unversioned stack-lts.yaml is unsupported"
 readStackConf f =
-  stripPrefix "stack-" f >>= stripSuffix ".yaml" >>= readCompactSnap
+  stripPrefix "stack-" f >>= stripSuffix ".yaml" >>= readCompactMajor
 
 stackAllFile :: FilePath
 stackAllFile = ".stack-all"
 
-createStackAll :: Snapshot -> IO ()
-createStackAll snap = do
+createStackAll :: MajorVer -> IO ()
+createStackAll ver = do
   exists <- doesFileExist stackAllFile
   if exists then error' $ stackAllFile ++ " already exists"
     else do
-    allSnaps <- getStreams
+    allMajors <- getMajorVers
     let older =
-          let molder = listToMaybe $ dropWhile (>= snap) allSnaps
-          in maybe "" (\s -> showSnap s ++ " too old") molder
+          let molder = listToMaybe $ dropWhile (>= ver) allMajors
+          in maybe "" (\s -> showMajor s ++ " too old") molder
     writeFile stackAllFile $
-      "[versions]\n# " ++ older ++ "\noldest = " ++ showSnap snap ++ "\n"
+      "[versions]\n# " ++ older ++ "\noldest = " ++ showMajor ver ++ "\n"
 
-readOldestLTS :: IO (Maybe Snapshot)
+readOldestLTS :: IO (Maybe MajorVer)
 readOldestLTS = do
   haveConfig <- doesFileExist stackAllFile
   if haveConfig then
-    Just . readSnap <$> readIniConfig stackAllFile rcParser id
+    Just . readMajor <$> readIniConfig stackAllFile rcParser id
     else return Nothing
   where
     rcParser :: IniParser String
@@ -145,37 +140,37 @@ readOldestLTS = do
       ini <- T.readFile inifile
       return $ either error fn $ parseIniFile ini iniparser
 
-makeStackLTS :: [Snapshot] -> IO ()
-makeStackLTS snaps = do
+makeStackLTS :: [MajorVer] -> IO ()
+makeStackLTS vers = do
   configs <- mapMaybe readStackConf <$> listDirectory "."
-  forM_ snaps $ \ snap -> do
-    if snap `elem` configs
-      then error' $ showConfig snap ++ " already exists!"
+  forM_ vers $ \ ver -> do
+    if ver `elem` configs
+      then error' $ showConfig ver ++ " already exists!"
       else do
       let mcurrentconfig =
-            listToMaybe $ sort (filter (snap <=) configs)
+            listToMaybe $ sort (filter (ver <=) configs)
       case mcurrentconfig of
-        Nothing -> copyFile "stack.yaml" (showConfig snap)
-        Just conf -> copyFile (showConfig conf) (showConfig snap)
-      whenJustM (latestSnapshot snap) $ \latest ->
-        cmd_ "sed" ["-i", "-e", "s/\\(resolver:\\) .*/\\1 " ++ latest ++ "/", showConfig snap]
+        Nothing -> copyFile "stack.yaml" (showConfig ver)
+        Just conf -> copyFile (showConfig conf) (showConfig ver)
+      whenJustM (latestSnapshot ver) $ \latest ->
+        cmd_ "sed" ["-i", "-e", "s/\\(resolver:\\) .*/\\1 " ++ latest ++ "/", showConfig ver]
 
-showConfig :: Snapshot -> FilePath
-showConfig sn = "stack-" ++ compactSnap sn <.> "yaml"
+showConfig :: MajorVer -> FilePath
+showConfig sn = "stack-" ++ compactMajor sn <.> "yaml"
   where
-    compactSnap :: Snapshot -> String
-    compactSnap Nightly = "nightly"
-    compactSnap (LTS ver) = "lts" ++ show ver
+    compactMajor :: MajorVer -> String
+    compactMajor Nightly = "nightly"
+    compactMajor (LTS ver) = "lts" ++ show ver
 
-stackBuild :: [Snapshot] -> Bool -> [String] -> Snapshot -> IO ()
-stackBuild configs debug command snap = do
+stackBuild :: [MajorVer] -> Bool -> [String] -> MajorVer -> IO ()
+stackBuild configs debug command ver = do
   let config =
-        case sort (filter (snap <=) configs) of
+        case sort (filter (ver <=) configs) of
           [] -> []
           (cfg:_) -> ["--stack-yaml", showConfig cfg]
-  latest <- latestSnapshot snap
+  latest <- latestSnapshot ver
   case latest of
-    Nothing -> error' $ "no snapshot not found for " ++ showSnap snap
+    Nothing -> error' $ "no snapshot not found for " ++ showMajor ver
     Just minor -> do
       let opts = ["-v" | debug] ++ ["--resolver", minor] ++ config
       putStrLn $ "# " ++ minor
@@ -186,7 +181,7 @@ stackBuild configs debug command snap = do
         unless ok $ do
           putStr "\nsnapshot-pkg-db: "
           cmd_ "stack" $ "--silent" : opts ++ ["path", "--snapshot-pkg-db"]
-          error' $ "failed for " ++ showSnap snap
+          error' $ "failed for " ++ showMajor ver
       putStrLn ""
   where
     debugBuild :: [String] -> IO ()
@@ -198,7 +193,7 @@ stackBuild configs debug command snap = do
       unless (ret == ExitSuccess) $ do
         -- stack verbose includes info line with all stackages (> 500kbytes)
         mapM_ putStrLn $ filter ((<10000) . length) . lines $ err
-        error' $ showSnap snap ++ " build failed"
+        error' $ showMajor ver ++ " build failed"
 
 
 -- taken from cabal-rpm FileUtils:

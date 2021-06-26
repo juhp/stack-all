@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Snapshots (
-  getStreams,
+  getMajorVers,
   latestSnapshot
   )
 where
@@ -19,19 +19,19 @@ import System.Directory
 import System.Environment.XDG.BaseDir
 import System.FilePath
 
-import Types
+import MajorVer
 
-excludedSnaps :: [Snapshot]
-excludedSnaps = [LTS 15, LTS 7, LTS 3, LTS 0]
+excludedMajors :: [MajorVer]
+excludedMajors = [LTS 15, LTS 7, LTS 3, LTS 0]
 
-getStreams :: IO [Snapshot]
-getStreams = do
+getMajorVers :: IO [MajorVer]
+getMajorVers = do
   obj <- getSnapshots
-  return $ reverse . sort $ map (readSnap . T.unpack) (H.keys obj \\ ["lts"]) \\ excludedSnaps
+  return $ reverse . sort $ map (readMajor . T.unpack) (H.keys obj \\ ["lts"]) \\ excludedMajors
 
-latestSnapshot :: Snapshot -> IO (Maybe String)
-latestSnapshot snap = do
-  lookupKey (T.pack (showSnap snap)) <$> getSnapshots
+latestSnapshot :: MajorVer -> IO (Maybe String)
+latestSnapshot ver = do
+  lookupKey (T.pack (showMajor ver)) <$> getSnapshots
 
 -- FIXME handle network failure
 getSnapshots :: IO Object
