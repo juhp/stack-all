@@ -1,3 +1,5 @@
+- set minimal lts by setup ghc version
+
 - config for list of snaps
 - config for default lts
 

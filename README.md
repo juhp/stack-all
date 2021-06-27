@@ -2,7 +2,7 @@
 
 A CLI tool for building Haskell projects easily over Stackage major versions.
 
-This is how I do my Haskell "build ci" now locally.
+This is how I do my Haskell build CI for projects locally with stack.
 
 ## Usage
 
@@ -58,7 +58,7 @@ You can specify the oldest major lts to build for with eg `stack-all -o lts13`.
 Otherwise if not configured the default oldest lts is currently `lts-11`.
 
 Similarly you can specify the newest lts version to build from with
-`stack-all -n lts16`. (The default is to build from nightly.)
+eg `stack-all -n lts16`. (The default is to build from nightly.)
 
 Alternatively, one can give one or more explicit lts major versions to build for
 as arguments: eg `stack-all lts14` if you only wish to build that version.
@@ -66,7 +66,7 @@ as arguments: eg `stack-all lts14` if you only wish to build that version.
 ### Running other stack commands
 By default `stack-all` just runs the stack `build` command over lts versions.
 
-You can also specify the stack command to run and its options on the commandline:
+You can also specify a stack command to run with options on the commandline:
 eg
 ```
 $ stack-all test --no-rerun-tests
