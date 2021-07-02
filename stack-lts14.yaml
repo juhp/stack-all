@@ -1,3 +1,5 @@
 resolver: lts-14.27
 extra-deps:
   - http-query-0.1.0
+  - git: https://github.com/juhp/cached-json-file.git
+    commit: 993d81c3fd1588c9bbc90483e6ce8ccda33fb4ef
