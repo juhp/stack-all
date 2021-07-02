@@ -3,8 +3,6 @@
 - config for list of snaps
 - config for default lts
 
-- support stack-nightly.yaml (we don't?)
-
 - option to only build default lts
 - global config for default oldest lts
 - option to continue building after failure??
