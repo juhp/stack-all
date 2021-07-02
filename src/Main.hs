@@ -46,8 +46,8 @@ run command debug mnewest verlimit verscmd = do
   case command of
     CreateConfig ->
       case verlimit of
-        Oldest oldest -> createStackAll oldest
-        _ -> error' "creating .stack-all requires --oldest LTS"
+        Oldest oldest -> createStackAll (Just oldest) mnewest
+        _ -> createStackAll Nothing mnewest
     MakeStackLTS -> do
       (versions, _) <- getVersionsCmd
       if null versions
@@ -114,17 +114,28 @@ readStackConf f =
 stackAllFile :: FilePath
 stackAllFile = ".stack-all"
 
-createStackAll :: MajorVer -> IO ()
-createStackAll ver = do
+createStackAll :: Maybe MajorVer -> Maybe MajorVer -> IO ()
+createStackAll Nothing Nothing =
+  error' "creating .stack-all requires --oldest LTS and/or --newest LTS"
+createStackAll moldest mnewest = do
   exists <- doesFileExist stackAllFile
   if exists then error' $ stackAllFile ++ " already exists"
     else do
     allMajors <- getMajorVers
-    let older =
-          let molder = listToMaybe $ dropWhile (>= ver) allMajors
-          in maybe "" (\s -> showMajor s ++ " too old") molder
     writeFile stackAllFile $
-      "[versions]\n# " ++ older ++ "\noldest = " ++ showMajor ver ++ "\n"
+      "[versions]\n" ++
+      case mnewest of
+        Nothing -> ""
+        Just newest ->
+          "newest = " ++ showMajor newest ++ "\n"
+      ++
+      case moldest of
+        Nothing -> ""
+        Just oldest ->
+          let older =
+                let molder = listToMaybe $ dropWhile (>= oldest) allMajors
+                in maybe "" (\s -> showMajor s ++ " too old") molder
+          in "# " ++ older ++ "\noldest = " ++ showMajor oldest ++ "\n"
 
 readNewestOldestLTS :: IO (MajorVer,MajorVer)
 readNewestOldestLTS = do
