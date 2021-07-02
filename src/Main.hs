@@ -19,8 +19,8 @@ import MajorVer
 import Paths_stack_all (version)
 import Snapshots
 
-defaultOldest :: MajorVer
-defaultOldest = LTS 11
+defaultOldestLTS :: MajorVer
+defaultOldestLTS = LTS 11
 
 data VersionLimit = DefaultLimit | Oldest MajorVer | AllVersions
 
@@ -91,17 +91,20 @@ run command debug mnewest verlimit verscmd = do
         if null verlist then
           case verlimit of
             DefaultLimit -> do
-              oldest <- fromMaybeM (return defaultOldest) readOldestLTS
+              (newestLTS, oldestLTS) <- readNewestOldestLTS
               return $ case mnewest of
                          Just newest ->
-                           if newest < oldest
-                           then filter (newest >=) allMajors
-                           else filter (\ s ->  s >= oldest && newest >= s) allMajors
-                         Nothing -> filter (>= oldest) allMajors
+                           if newest < oldestLTS
+                           then filter (inRange newest (LTS 1)) allMajors
+                           else filter (inRange newest oldestLTS) allMajors
+                         Nothing -> filter (inRange newestLTS oldestLTS) allMajors
             AllVersions -> return allMajors
-            Oldest ver -> return $ filter (>= ver) allMajors
+            Oldest ver -> return $ filter (inRange Nightly ver) allMajors
         else return verlist
       return (versions,if null cmds then ["build"] else cmds)
+      where
+        inRange :: MajorVer -> MajorVer -> MajorVer -> Bool
+        inRange newest oldest v = v >= oldest && v <= newest
 
 readStackConf :: FilePath -> Maybe MajorVer
 readStackConf "stack-lts.yaml" = error' "unversioned stack-lts.yaml is unsupported"
@@ -123,22 +126,21 @@ createStackAll ver = do
     writeFile stackAllFile $
       "[versions]\n# " ++ older ++ "\noldest = " ++ showMajor ver ++ "\n"
 
-readOldestLTS :: IO (Maybe MajorVer)
-readOldestLTS = do
+readNewestOldestLTS :: IO (MajorVer,MajorVer)
+readNewestOldestLTS = do
   haveConfig <- doesFileExist stackAllFile
   if haveConfig then
-    Just . readMajor <$> readIniConfig stackAllFile rcParser id
-    else return Nothing
+    readIniConfig stackAllFile $
+    section "versions" $ do
+    mnewest <- fmap readMajor <$> fieldMbOf "newest" string
+    moldest <- fmap readMajor <$> fieldMbOf "oldest" string
+    return (fromMaybe Nightly mnewest, fromMaybe defaultOldestLTS moldest)
+    else return (Nightly, defaultOldestLTS)
   where
-    rcParser :: IniParser String
-    rcParser =
-      section "versions" $
-      fieldOf "oldest" string
-
-    readIniConfig :: FilePath -> IniParser a -> (a -> b) -> IO b
-    readIniConfig inifile iniparser fn = do
+    readIniConfig :: FilePath -> IniParser a -> IO a
+    readIniConfig inifile iniparser = do
       ini <- T.readFile inifile
-      return $ either error fn $ parseIniFile ini iniparser
+      return $ either error id $ parseIniFile ini iniparser
 
 makeStackLTS :: [MajorVer] -> IO ()
 makeStackLTS vers = do
