@@ -34,7 +34,7 @@ readMajor ver =
   case maybeReadMajor ver of
     Just s -> s
     Nothing ->
-      error' $ "couldn't parse " ++ ver ++ " (expected lts-XX or ltsXX)"
+      error' $! "couldn't parse " ++ ver ++ " (expected lts-XX or ltsXX)"
 
 -- readCompactMajor "lts16"
 readCompactMajor :: String -> Maybe MajorVer
@@ -43,7 +43,7 @@ readCompactMajor ver =
   if "lts" `isPrefixOf` ver then
     case readMaybe (dropPrefix "lts" ver) of
       Just major -> Just (LTS major)
-      Nothing -> error' $ "couldn't parse compact " ++ ver ++  " (expected ltsXX)"
+      Nothing -> error' $! "couldn't parse compact " ++ ver ++  " (expected ltsXX)"
   else Nothing
 
 eitherReadMajor :: String -> Either String MajorVer
