@@ -34,14 +34,16 @@ main = do
     run <$>
     (flagWith' CreateConfig 'c' "create-config" "Create a project .stack-all file" <|>
      flagWith DefaultRun MakeStackLTS 's' "make-lts" "Create a stack-ltsXX.yaml file") <*>
+    switchWith 'k' "keep-going" "Keep going even if an LTS fails" <*>
     switchWith 'd' "debug" "Verbose stack build output on error" <*>
     optional (readMajor <$> strOptionWith 'n' "newest" "MAJOR" "Newest LTS release to build from") <*>
     (Oldest . readMajor <$> strOptionWith 'o' "oldest" "MAJOR" "Oldest compatible LTS release" <|>
      flagWith DefaultLimit AllVersions 'a' "all-lts" "Try to build back to LTS 1 even") <*>
     many (strArg "MAJORVER... [COMMAND...]")
 
-run :: Command -> Bool -> Maybe MajorVer -> VersionLimit -> [String] -> IO ()
-run command debug mnewest verlimit verscmd = do
+run :: Command -> Bool ->Bool -> Maybe MajorVer -> VersionLimit -> [String]
+    -> IO ()
+run command keepgoing debug mnewest verlimit verscmd = do
   findStackProjectDir Nothing
   case command of
     CreateConfig ->
@@ -57,7 +59,7 @@ run command debug mnewest verlimit verscmd = do
       (versions, cargs) <- getVersionsCmd
       configs <- mapMaybe readStackConf <$> listDirectory "."
       let newestFilter = maybe id (filter . (>=)) mnewest
-      mapM_ (stackBuild configs debug cargs) (newestFilter versions)
+      mapM_ (stackBuild configs keepgoing debug cargs) (newestFilter versions)
   where
     findStackProjectDir :: Maybe FilePath -> IO ()
     findStackProjectDir mcwd = do
@@ -175,8 +177,8 @@ showConfig sn = "stack-" ++ compactMajor sn <.> "yaml"
     compactMajor Nightly = "nightly"
     compactMajor (LTS ver) = "lts" ++ show ver
 
-stackBuild :: [MajorVer] -> Bool -> [String] -> MajorVer -> IO ()
-stackBuild configs debug command ver = do
+stackBuild :: [MajorVer] -> Bool -> Bool -> [String] -> MajorVer -> IO ()
+stackBuild configs keepgoing debug command ver = do
   let config =
         case sort (filter (ver <=) configs) of
           [] -> []
@@ -191,7 +193,7 @@ stackBuild configs debug command ver = do
         then debugBuild $ opts ++ command
         else do
         ok <- cmdBool "stack" $ opts ++ command
-        unless ok $ do
+        unless (ok || keepgoing) $ do
           putStr "\nsnapshot-pkg-db: "
           cmd_ "stack" $ "--silent" : opts ++ ["path", "--snapshot-pkg-db"]
           error' $ "failed for " ++ showMajor ver

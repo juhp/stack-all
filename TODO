@@ -5,7 +5,5 @@
 
 - option to only build default lts
 - global config for default oldest lts
-- option to continue building after failure??
-- option to skip stack path on failure?
 
 - print ghc versions
