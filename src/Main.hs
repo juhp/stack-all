@@ -81,7 +81,7 @@ run command keepgoing debug mnewest verlimit verscmd = do
             -- FIXME stack init content too verbose
             unlessM (cmdBool "stack" ["init"]) $
               -- FIXME determine latest stable snapshot automatically
-              writeFile "stack.yaml" "resolver: lts-17.15\n"
+              writeFile "stack.yaml" "resolver: lts-18.8\n"
             else error' "no package/project found"
 
     getVersionsCmd :: IO ([MajorVer],[String])

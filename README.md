@@ -8,7 +8,7 @@ This is how I do my Haskell build CI for projects locally with stack.
 
 `stack-all` by default runs `stack build` over
 recent Stackage LTS major versions and Nightly
-(current default is nightly, lts-18, lts-17, lts-16, lts-14,... , lts-11)
+(current default is nightly & LTS 18, 16, 14, 13, 12, 11)
 corresponding to latest major ghc minor versions,
 using the stack's `--resolver` option.
 
@@ -25,7 +25,7 @@ another `stack-ltsYY.yaml` file is found.
 
 For example if you have `stack-lts14.yaml` and `stack-lts12.yaml` files
 in your project,
-then `stack.yaml` will be used as normal to build nightly, lts-17 and lts-16,
+then `stack.yaml` will be used as normal to build nightly, lts-18 and lts-16,
 but `stack-lts14.yaml` will be used for building lts-14 and lts-13,
 and `stack-lts12.yaml` will be used for lts-12, lts-11 (and older).
 Since `stack-all` overrides the resolver with `--resolver lts-XX`
