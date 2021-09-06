@@ -1,5 +1,11 @@
 # Release history for stack-all
 
+## 0.3.1 (2021-09-06)
+- newest LTS for a project can now be configured
+- use cached-json-file for snapshots.json
+- add --keep-going
+- exclude lts17 now by default
+
 ## 0.3 (2021-06-26)
 - use hackage.stackage.org/snapshots.json:
   - to determine the latest LTS major version
