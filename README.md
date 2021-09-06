@@ -33,20 +33,11 @@ the exact minor lts version specified in the `stack*.yaml` files
 doesn't actually matter: `stack-all` always uses the latest minor release of
 the lts major version according to Stackage.
 
+`stack-ltsXX.yaml` files can be easily prepared using
+`stack-all --make-lts ltsXX` (or `-s ltsXX` for short).
+
 (Other versioned stack.yaml filenames like stack-ghc-8.8.yaml
 are not currently supported.)
-
-### Configuring the oldest lts to build
-You can configure the oldest working LTS major version for your project
-by running for example `stack-all -c -o lts-13` which generates a `.stack-all`
-project config file like this:
-```
-[versions]
-# lts-12 too old
-oldest = lts-13
-```
-(the comment line can be used to document why the older lts doesn't work).
-This specifies that the oldest lts version to build for is lts-13.
 
 ### Specifying lts versions
 You can abbreviate `lts-XX` args to `ltsXX` on the commandline.
@@ -63,6 +54,21 @@ eg `stack-all -n lts16`. (The default is to build from nightly.)
 Alternatively, one can give one or more explicit lts major versions to build for
 as arguments: eg `stack-all lts14` if you only wish to build that version.
 
+### Configuring the oldest and/or newest lts to build
+You can configure the oldest working LTS major version for your project
+by running for example `stack-all -c -o lts-13` which generates a `.stack-all`
+project config file like this:
+```
+[versions]
+# lts-12 too old
+oldest = lts-13
+```
+(the comment line can be used to document why the older lts doesn't work).
+This specifies that the oldest lts version to build for is lts-13.
+
+The newest lts to build with stack-all can similarly be configured:
+`stack-all -c -n lts18` or setting `newest = lts-18`.
+
 ### Running other stack commands
 By default `stack-all` just runs the stack `build` command over lts versions.
 
@@ -78,7 +84,7 @@ Happy stack building!
 ## Install
 The project is released on Hackage.
 
-You can also build from source with `stack install` or `cabal install`.
+You can also build from git source with `stack install` or `cabal install`.
 
 ## Collaboration
 The project is hosted at https://github.com/juhp/stack-all under a BSD license.
