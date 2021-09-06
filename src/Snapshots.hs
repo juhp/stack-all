@@ -16,7 +16,7 @@ import System.Cached.JSON
 import MajorVer
 
 excludedMajors :: [MajorVer]
-excludedMajors = [LTS 15, LTS 7, LTS 3, LTS 0]
+excludedMajors = [LTS 17, LTS 15, LTS 7, LTS 3, LTS 0]
 
 getMajorVers :: IO [MajorVer]
 getMajorVers = do
