@@ -19,8 +19,8 @@ quickly trying to build a package that does not include stack support.
 
 ### Overriding stack.yaml
 `stack-all` can use `stack-ltsXX.yaml` files to override the default `stack.yaml`
-file for particular lts major versions. Note that a `stack-ltsXX.yaml` file
-will also be used for older lts major versions until
+file for particular LTS major versions. Note that a `stack-ltsXX.yaml` file
+will also be used for older LTS major versions until
 another `stack-ltsYY.yaml` file is found.
 
 For example if you have `stack-lts14.yaml` and `stack-lts12.yaml` files
@@ -29,9 +29,9 @@ then `stack.yaml` will be used as normal to build nightly, lts-18 and lts-16,
 but `stack-lts14.yaml` will be used for building lts-14 and lts-13,
 and `stack-lts12.yaml` will be used for lts-12, lts-11 (and older).
 Since `stack-all` overrides the resolver with `--resolver lts-XX`
-the exact minor lts version specified in the `stack*.yaml` files
+the exact minor LTS version specified in the `stack*.yaml` files
 doesn't actually matter: `stack-all` always uses the latest minor release of
-the lts major version according to Stackage.
+the LTS major version according to Stackage.
 
 `stack-ltsXX.yaml` files can be easily prepared using
 `stack-all --make-lts ltsXX` (or `-s ltsXX` for short).
@@ -39,22 +39,22 @@ the lts major version according to Stackage.
 (Other versioned stack.yaml filenames like stack-ghc-8.8.yaml
 are not currently supported.)
 
-### Specifying lts versions
+### Specifying LTS versions
 You can abbreviate `lts-XX` args to `ltsXX` on the commandline.
 
 There are `--oldest`  and `--newest` options to specify the range of
 lts versions to build over:
 
-You can specify the oldest major lts to build for with eg `stack-all -o lts13`.
-Otherwise if not configured the default oldest lts is currently `lts-11`.
+You can specify the oldest major LTS to build for with eg `stack-all -o lts13`.
+Otherwise if not configured the default oldest LTS is currently `lts-11`.
 
-Similarly you can specify the newest lts version to build from with
+Similarly you can specify the newest LTS version to build from with
 eg `stack-all -n lts16`. (The default is to build from nightly.)
 
-Alternatively, one can give one or more explicit lts major versions to build for
+Alternatively, one can give one or more explicit LTS major versions to build for
 as arguments: eg `stack-all lts14` if you only wish to build that version.
 
-### Configuring the oldest and/or newest lts to build
+### Configuring the oldest and/or newest LTS to build
 You can configure the oldest working LTS major version for your project
 by running for example `stack-all -c -o lts-13` which generates a `.stack-all`
 project config file like this:
@@ -63,14 +63,14 @@ project config file like this:
 # lts-12 too old
 oldest = lts-13
 ```
-(the comment line can be used to document why the older lts doesn't work).
-This specifies that the oldest lts version to build for is lts-13.
+(the comment line can be used to document why the older LTS doesn't work).
+This specifies that the oldest LTS version to build for is lts-13.
 
-The newest lts to build with stack-all can similarly be configured:
+The newest LTS to build with stack-all can similarly be configured:
 `stack-all -c -n lts18` or setting `newest = lts-18`.
 
 ### Running other stack commands
-By default `stack-all` just runs the stack `build` command over lts versions.
+By default `stack-all` just runs the stack `build` command over LTS versions.
 
 You can also specify a stack command to run with options on the commandline:
 eg
