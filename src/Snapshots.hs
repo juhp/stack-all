@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE CPP, OverloadedStrings #-}
 
 module Snapshots (
   getMajorVers,
@@ -8,7 +8,12 @@ where
 
 import Data.Aeson
 import Data.List.Extra
-import qualified Data.HashMap.Strict as H
+#if MIN_VERSION_aeson(2,0,0)
+import Data.Aeson.Key (toText)
+import qualified Data.Aeson.KeyMap as M
+#else
+import qualified Data.HashMap.Lazy as M
+#endif
 import qualified Data.Text as T
 import Network.HTTP.Query
 import System.Cached.JSON
@@ -21,7 +26,10 @@ excludedMajors = [LTS 17, LTS 15, LTS 7, LTS 3, LTS 0]
 getMajorVers :: IO [MajorVer]
 getMajorVers = do
   obj <- getSnapshots
-  return $ reverse . sort $ map (readMajor . T.unpack) (H.keys obj \\ ["lts"]) \\ excludedMajors
+  return $ reverse . sort $ map (readMajor . T.unpack . toText) (M.keys obj \\ ["lts"]) \\ excludedMajors
+#if !MIN_VERSION_aeson(2,0,0)
+  where toText = id
+#endif
 
 latestSnapshot :: MajorVer -> IO (Maybe String)
 latestSnapshot ver = do
