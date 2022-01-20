@@ -80,7 +80,7 @@ run command keepgoing debug mnewest verlimit verscmd = do
             -- FIXME take suggested extra-deps into stack.yaml
             -- FIXME stack init content too verbose
             unlessM (cmdBool "stack" ["init"]) $ do
-              snap <- latestLTS
+              snap <- latestLtsSnapshot
               writeFile "stack.yaml" $ "resolver: " ++ snap ++ "\n"
             else error' "no package/project found"
 
@@ -102,11 +102,14 @@ run command keepgoing debug mnewest verlimit verscmd = do
                          Nothing -> filter (inRange newestLTS oldestLTS) allMajors
             AllVersions -> return allMajors
             Oldest ver -> return $ filter (inRange Nightly ver) allMajors
-        else return verlist
+        else mapM resolveMajor verlist
       return (versions,if null cmds then ["build"] else cmds)
       where
         inRange :: MajorVer -> MajorVer -> MajorVer -> Bool
         inRange newest oldest v = v >= oldest && v <= newest
+
+        resolveMajor ver =
+          if ver == LatestLTS then latestLTS else return ver
 
 readStackConf :: FilePath -> Maybe MajorVer
 readStackConf "stack-lts.yaml" = error' "unversioned stack-lts.yaml is unsupported"
@@ -159,31 +162,39 @@ makeStackLTS :: [MajorVer] -> IO ()
 makeStackLTS vers = do
   configs <- mapMaybe readStackConf <$> listDirectory "."
   forM_ vers $ \ ver -> do
+    newfile <- getConfigFile ver
     if ver `elem` configs
-      then error' $ showConfig ver ++ " already exists!"
+      then do
+      error' $ newfile ++ " already exists!"
       else do
       let mcurrentconfig =
             listToMaybe $ sort (filter (ver <=) configs)
       case mcurrentconfig of
-        Nothing -> copyFile "stack.yaml" (showConfig ver)
-        Just conf -> copyFile (showConfig conf) (showConfig ver)
+        Nothing -> copyFile "stack.yaml" newfile
+        Just conf -> do
+          origfile <- getConfigFile conf
+          copyFile origfile newfile
       whenJustM (latestSnapshot ver) $ \latest ->
-        cmd_ "sed" ["-i", "-e", "s/\\(resolver:\\) .*/\\1 " ++ latest ++ "/", showConfig ver]
+        cmd_ "sed" ["-i", "-e", "s/\\(resolver:\\) .*/\\1 " ++ latest ++ "/", newfile]
 
-showConfig :: MajorVer -> FilePath
-showConfig sn = "stack-" ++ compactMajor sn <.> "yaml"
+getConfigFile :: MajorVer -> IO FilePath
+getConfigFile sn = do
+  major <- compactMajor sn
+  return $ "stack-" ++ major <.> "yaml"
   where
-    compactMajor :: MajorVer -> String
-    compactMajor Nightly = "nightly"
-    compactMajor LatestLTS = "lts"
-    compactMajor (LTS ver) = "lts" ++ show ver
+    compactMajor :: MajorVer -> IO String
+    compactMajor Nightly = return "nightly"
+    compactMajor LatestLTS = latestLtsSnapshot
+    compactMajor (LTS ver) = return $ "lts" ++ show ver
 
 stackBuild :: [MajorVer] -> Bool -> Bool -> [String] -> MajorVer -> IO ()
 stackBuild configs keepgoing debug command ver = do
-  let config =
-        case sort (filter (ver <=) configs) of
-          [] -> []
-          (cfg:_) -> ["--stack-yaml", showConfig cfg]
+  config <-
+    case sort (filter (ver <=) configs) of
+      [] -> return []
+      (cfg:_) -> do
+        file <- getConfigFile cfg
+        return ["--stack-yaml", file]
   latest <- latestSnapshot ver
   case latest of
     Nothing -> error' $ "no snapshot not found for " ++ showMajor ver

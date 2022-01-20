@@ -3,7 +3,8 @@
 module Snapshots (
   getMajorVers,
   latestSnapshot,
-  latestLTS
+  latestLTS,
+  latestLtsSnapshot
   )
 where
 
@@ -41,8 +42,18 @@ getSnapshots :: IO Object
 getSnapshots =
   getCachedJSON "stackage-snapshots" "snapshots.json" "http://haddock.stackage.org/snapshots.json" 200
 
-latestLTS :: IO String
+latestLTS :: IO MajorVer
 latestLTS = do
+  msnap <- latestSnapshot LatestLTS
+  case msnap of
+    Nothing ->
+      error' "failed to determine latest lts snapshot"
+    Just snap -> case breakOn "." snap of
+      ("",_) -> error' $ "bad snapshot " ++ snap
+      (lts,_minor) -> return $ readMajor lts
+
+latestLtsSnapshot :: IO String
+latestLtsSnapshot = do
   msnap <- latestSnapshot LatestLTS
   case msnap of
     Nothing ->
