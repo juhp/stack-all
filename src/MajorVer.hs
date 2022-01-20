@@ -14,12 +14,12 @@ import SimpleCmd (error')
 import Text.Read (readMaybe)
 
 -- FIXME allow specific snapshots?
--- FIXME support "lts"?
-data MajorVer = LTS Int | Nightly
+data MajorVer = LatestLTS | LTS Int | Nightly
   deriving (Eq, Ord)
 
 maybeReadMajor :: String -> Maybe MajorVer
 maybeReadMajor "nightly" = Just Nightly
+maybeReadMajor "lts" = Just LatestLTS
 maybeReadMajor ver =
   if "lts" `isPrefixOf` ver then
     case readMaybe (dropPrefix "lts-" ver) <|> readMaybe (dropPrefix "lts" ver) of
@@ -30,6 +30,7 @@ maybeReadMajor ver =
 -- readMajor "lts-16"
 readMajor :: String -> MajorVer
 readMajor "nightly" = Nightly
+readMajor "lts" = LatestLTS
 readMajor ver =
   case maybeReadMajor ver of
     Just s -> s
@@ -39,6 +40,7 @@ readMajor ver =
 -- readCompactMajor "lts16"
 readCompactMajor :: String -> Maybe MajorVer
 readCompactMajor "nightly" = Just Nightly
+readCompactMajor "lts" = Just LatestLTS
 readCompactMajor ver =
   if "lts" `isPrefixOf` ver then
     case readMaybe (dropPrefix "lts" ver) of
@@ -54,4 +56,5 @@ eitherReadMajor cs =
 
 showMajor :: MajorVer -> String
 showMajor Nightly = "nightly"
+showMajor LatestLTS = "lts"
 showMajor (LTS ver) = "lts-" ++ show ver

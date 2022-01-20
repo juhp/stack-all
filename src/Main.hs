@@ -175,6 +175,7 @@ showConfig sn = "stack-" ++ compactMajor sn <.> "yaml"
   where
     compactMajor :: MajorVer -> String
     compactMajor Nightly = "nightly"
+    compactMajor LatestLTS = "lts"
     compactMajor (LTS ver) = "lts" ++ show ver
 
 stackBuild :: [MajorVer] -> Bool -> Bool -> [String] -> MajorVer -> IO ()

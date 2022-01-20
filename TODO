@@ -3,8 +3,6 @@
 - choose lts's by latest ghc minor versions
 - take stack installed ghc versions into account
 
-- accept 'lts' for LatestLTS
-
 - config for list of snaps
 - config for default lts
 
