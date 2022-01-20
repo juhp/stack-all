@@ -2,7 +2,8 @@
 
 module Snapshots (
   getMajorVers,
-  latestSnapshot
+  latestSnapshot,
+  latestLTS
   )
 where
 
@@ -16,6 +17,7 @@ import qualified Data.HashMap.Lazy as M
 #endif
 import qualified Data.Text as T
 import Network.HTTP.Query
+import SimpleCmd (error')
 import System.Cached.JSON
 
 import MajorVer
@@ -38,3 +40,11 @@ latestSnapshot ver = do
 getSnapshots :: IO Object
 getSnapshots =
   getCachedJSON "stackage-snapshots" "snapshots.json" "http://haddock.stackage.org/snapshots.json" 200
+
+latestLTS :: IO String
+latestLTS = do
+  msnap <- latestSnapshot LatestLTS
+  case msnap of
+    Nothing ->
+      error' "failed to determine latest lts snapshot"
+    Just snap -> return snap
