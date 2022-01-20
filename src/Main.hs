@@ -108,9 +108,6 @@ run command keepgoing debug mnewest verlimit verscmd = do
         inRange :: MajorVer -> MajorVer -> MajorVer -> Bool
         inRange newest oldest v = v >= oldest && v <= newest
 
-        resolveMajor ver =
-          if ver == LatestLTS then latestLTS else return ver
-
 readStackConf :: FilePath -> Maybe MajorVer
 readStackConf "stack-lts.yaml" = error' "unversioned stack-lts.yaml is unsupported"
 readStackConf f =
@@ -178,14 +175,9 @@ makeStackLTS vers = do
         cmd_ "sed" ["-i", "-e", "s/\\(resolver:\\) .*/\\1 " ++ latest ++ "/", newfile]
 
 getConfigFile :: MajorVer -> IO FilePath
-getConfigFile sn = do
-  major <- compactMajor sn
-  return $ "stack-" ++ major <.> "yaml"
-  where
-    compactMajor :: MajorVer -> IO String
-    compactMajor Nightly = return "nightly"
-    compactMajor LatestLTS = latestLtsSnapshot
-    compactMajor (LTS ver) = return $ "lts" ++ show ver
+getConfigFile ver = do
+  major <- resolveMajor ver
+  return $ "stack-" ++ showCompact major <.> "yaml"
 
 stackBuild :: [MajorVer] -> Bool -> Bool -> [String] -> MajorVer -> IO ()
 stackBuild configs keepgoing debug command ver = do

@@ -4,7 +4,8 @@ module MajorVer (
   maybeReadMajor,
   readCompactMajor,
   readMajor,
-  showMajor
+  showMajor,
+  showCompact
   )
 where
 
@@ -58,3 +59,6 @@ showMajor :: MajorVer -> String
 showMajor Nightly = "nightly"
 showMajor LatestLTS = "lts"
 showMajor (LTS ver) = "lts-" ++ show ver
+
+showCompact :: MajorVer -> String
+showCompact = filter (/= '-') . showMajor

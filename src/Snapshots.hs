@@ -4,7 +4,8 @@ module Snapshots (
   getMajorVers,
   latestSnapshot,
   latestLTS,
-  latestLtsSnapshot
+  latestLtsSnapshot,
+  resolveMajor
   )
 where
 
@@ -59,3 +60,8 @@ latestLtsSnapshot = do
     Nothing ->
       error' "failed to determine latest lts snapshot"
     Just snap -> return snap
+
+-- converts 'lts' to actual version
+resolveMajor :: MajorVer -> IO MajorVer
+resolveMajor ver =
+  if ver == LatestLTS then latestLTS else return ver
