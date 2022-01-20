@@ -1,5 +1,10 @@
 # Release history for stack-all
 
+## 0.3.2 (2022-01-20)
+- 'lts' alias now works as commandline argument
+- get lts snapshot resolver from snapshot.json when no stack.yaml
+- support aeson-2.0
+
 ## 0.3.1 (2021-09-06)
 - newest LTS for a project can now be configured
 - use cached-json-file for snapshots.json
