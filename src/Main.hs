@@ -183,7 +183,7 @@ stackBuild configs keepgoing debug command ver = do
         case ver of
           Nightly | Nightly `elem` configs -> Just Nightly
           _ ->
-            case sort (filter (ver <=) configs) of
+            case sort (filter (ver <=) (delete Nightly configs)) of
               [] -> Nothing
               (cfg:_) -> Just cfg
   latest <- latestMajorSnapshot ver
