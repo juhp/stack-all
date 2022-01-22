@@ -86,7 +86,7 @@ run command keepgoing debug mnewest verlimit verscmd = do
 
     getVersionsCmd :: IO ([MajorVer],[String])
     getVersionsCmd = do
-      let partitionMajors = swap . partitionEithers . map eitherReadMajor
+      let partitionMajors = swap . partitionEithers . map eitherReadMajorAlias
           (verlist,cmds) = partitionMajors verscmd
       allMajors <- getMajorVers
       versions <-
@@ -102,7 +102,7 @@ run command keepgoing debug mnewest verlimit verscmd = do
                          Nothing -> filter (inRange newestLTS oldestLTS) allMajors
             AllVersions -> return allMajors
             Oldest ver -> return $ filter (inRange Nightly ver) allMajors
-        else mapM resolveMajor verlist
+        else nub <$> mapM resolveMajor verlist
       return (versions,if null cmds then ["build"] else cmds)
       where
         inRange :: MajorVer -> MajorVer -> MajorVer -> Bool
@@ -159,7 +159,7 @@ makeStackLTS :: [MajorVer] -> IO ()
 makeStackLTS vers = do
   configs <- mapMaybe readStackConf <$> listDirectory "."
   forM_ vers $ \ ver -> do
-    newfile <- getConfigFile ver
+    let newfile = configFile ver
     if ver `elem` configs
       then do
       error' $ newfile ++ " already exists!"
@@ -169,29 +169,29 @@ makeStackLTS vers = do
       case mcurrentconfig of
         Nothing -> copyFile "stack.yaml" newfile
         Just conf -> do
-          origfile <- getConfigFile conf
+          let origfile = configFile conf
           copyFile origfile newfile
-      whenJustM (latestSnapshot ver) $ \latest ->
+      whenJustM (latestMajorSnapshot ver) $ \latest ->
         cmd_ "sed" ["-i", "-e", "s/\\(resolver:\\) .*/\\1 " ++ latest ++ "/", newfile]
 
-getConfigFile :: MajorVer -> IO FilePath
-getConfigFile ver = do
-  major <- resolveMajor ver
-  return $ "stack-" ++ showCompact major <.> "yaml"
+configFile :: MajorVer -> FilePath
+configFile ver = "stack-" ++ showCompact ver <.> "yaml"
 
 stackBuild :: [MajorVer] -> Bool -> Bool -> [String] -> MajorVer -> IO ()
 stackBuild configs keepgoing debug command ver = do
-  config <-
-    case sort (filter (ver <=) configs) of
-      [] -> return []
-      (cfg:_) -> do
-        file <- getConfigFile cfg
-        return ["--stack-yaml", file]
-  latest <- latestSnapshot ver
+  let mcfgver =
+        case ver of
+          Nightly | Nightly `elem` configs -> Just Nightly
+          _ ->
+            case sort (filter (ver <=) configs) of
+              [] -> Nothing
+              (cfg:_) -> Just cfg
+  latest <- latestMajorSnapshot ver
   case latest of
     Nothing -> error' $ "no snapshot not found for " ++ showMajor ver
     Just minor -> do
-      let opts = ["-v" | debug] ++ ["--resolver", minor] ++ config
+      let opts = ["-v" | debug] ++ ["--resolver", minor] ++
+                 maybe [] (\f -> ["--stack-yaml", configFile f]) mcfgver
       putStrLn $ "# " ++ minor
       if debug
         then debugBuild $ opts ++ command

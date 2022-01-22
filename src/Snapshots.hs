@@ -2,7 +2,7 @@
 
 module Snapshots (
   getMajorVers,
-  latestSnapshot,
+  latestMajorSnapshot,
   latestLTS,
   latestLtsSnapshot,
   resolveMajor
@@ -35,8 +35,8 @@ getMajorVers = do
   where toText = id
 #endif
 
-latestSnapshot :: MajorVer -> IO (Maybe String)
-latestSnapshot ver = do
+latestMajorSnapshot :: MajorVer -> IO (Maybe String)
+latestMajorSnapshot ver = do
   lookupKey (T.pack (showMajor ver)) <$> getSnapshots
 
 getSnapshots :: IO Object
@@ -45,23 +45,20 @@ getSnapshots =
 
 latestLTS :: IO MajorVer
 latestLTS = do
-  msnap <- latestSnapshot LatestLTS
+  msnap <- lookupKey "lts" <$> getSnapshots
   case msnap of
-    Nothing ->
-      error' "failed to determine latest lts snapshot"
-    Just snap -> case breakOn "." snap of
-      ("",_) -> error' $ "bad snapshot " ++ snap
-      (lts,_minor) -> return $ readMajor lts
+    Just snap -> return $ snapMajorVer snap
+    Nothing -> error' "could not resolve lts major version"
 
 latestLtsSnapshot :: IO String
 latestLtsSnapshot = do
-  msnap <- latestSnapshot LatestLTS
+  msnap <- resolveMajor LatestLTS >>= latestMajorSnapshot
   case msnap of
     Nothing ->
       error' "failed to determine latest lts snapshot"
     Just snap -> return snap
 
 -- converts 'lts' to actual version
-resolveMajor :: MajorVer -> IO MajorVer
-resolveMajor ver =
-  if ver == LatestLTS then latestLTS else return ver
+resolveMajor :: MajorVerAlias -> IO MajorVer
+resolveMajor LatestLTS = latestLTS
+resolveMajor (MajorVer ver) = return ver
