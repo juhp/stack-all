@@ -1,8 +1,9 @@
 # Release history for stack-all
 
-## 0.3.2 (2022-01-20)
-- 'lts' alias now works as commandline argument
-- get lts snapshot resolver from snapshot.json when no stack.yaml
+## 0.4 (2022-01-24)
+- 'lts' alias can now be used as a commandline version argument
+- stack-nightly.yaml is now only used for building nightly
+- if creating stack.yaml use latest lts snapshot resolver from snapshot.json
 - support aeson-2.0
 
 ## 0.3.1 (2021-09-06)

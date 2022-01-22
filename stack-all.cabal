@@ -1,5 +1,5 @@
 name:                stack-all
-version:             0.3.2
+version:             0.4
 synopsis:            CLI tool for building across Stackage major versions
 description:
         Build your Haskell project over Stackage major LTS versions.
