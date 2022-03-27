@@ -215,8 +215,7 @@ stackBuild configs keepgoing debug command ver = do
         error' $ showMajor ver ++ " build failed"
 
 
--- taken from cabal-rpm FileUtils:
-
+#if !MIN_VERSION_simple_cmd(0,2,4)
 filesWithExtension :: FilePath -- directory
                    -> String   -- file extension
                    -> IO [FilePath]
@@ -233,6 +232,7 @@ fileWithExtension dir ext = do
        [file] -> return $ Just $ dir </> file
        [] -> return Nothing
        _ -> putStrLn ("More than one " ++ ext ++ " file found!") >> return Nothing
+#endif
 
 -- looks in current dir for a unique file with given extension
 doesFileExistWithExtension :: FilePath -> String -> IO Bool
