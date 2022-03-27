@@ -1,5 +1,8 @@
 # Release history for stack-all
 
+## 0.4.0.1 (2022-03-27)
+- fix build with simple-cmd-0.2.4
+
 ## 0.4 (2022-01-24)
 - 'lts' alias can now be used as a commandline version argument
 - stack-nightly.yaml is now only used for building nightly

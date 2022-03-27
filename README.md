@@ -7,7 +7,7 @@ This is how I do my Haskell build CI for projects locally with stack.
 ## Usage
 
 `stack-all` by default runs `stack build` over Stackage Nightly and
-LTS major versions (current default is nightly & LTS 18, 16, 14, 13, 12, 11)
+LTS major versions (current default is nightly & LTS 19, 18, 16, 14, 13, 12, 11)
 corresponding to latest major ghc minor versions,
 with appropriate stack `--resolver` options.
 
