@@ -1,5 +1,8 @@
 # Release history for stack-all
 
+## 0.4.1 (2023-02-20)
+- ignore nightly as a base when creating a new lts file
+
 ## 0.4.0.1 (2022-03-27)
 - fix build with simple-cmd-0.2.4
 
