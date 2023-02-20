@@ -169,7 +169,7 @@ makeStackLTS vers = do
       error' $ newfile ++ " already exists!"
       else do
       let mcurrentconfig =
-            listToMaybe $ sort (filter (ver <=) configs)
+            listToMaybe $ filter (ver <=) (delete Nightly configs)
       case mcurrentconfig of
         Nothing -> copyFile "stack.yaml" newfile
         Just conf -> do
