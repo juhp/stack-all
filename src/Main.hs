@@ -57,7 +57,7 @@ run command keepgoing debug mnewest verlimit verscmd = do
         else makeStackLTS versions
     DefaultRun -> do
       (versions, cargs) <- getVersionsCmd
-      configs <- mapMaybe readStackConf <$> listDirectory "."
+      configs <- readStackConfigs
       let newestFilter = maybe id (filter . (>=)) mnewest
       mapM_ (stackBuild configs keepgoing debug cargs) (newestFilter versions)
   where
@@ -108,10 +108,14 @@ run command keepgoing debug mnewest verlimit verscmd = do
         inRange :: MajorVer -> MajorVer -> MajorVer -> Bool
         inRange newest oldest v = v >= oldest && v <= newest
 
-readStackConf :: FilePath -> Maybe MajorVer
-readStackConf "stack-lts.yaml" = error' "unversioned stack-lts.yaml is unsupported"
-readStackConf f =
-  stripPrefix "stack-" f >>= stripSuffix ".yaml" >>= readCompactMajor
+readStackConfigs :: IO [MajorVer]
+readStackConfigs = do
+ sort . mapMaybe readStackConf <$> listDirectory "."
+ where
+   readStackConf :: FilePath -> Maybe MajorVer
+   readStackConf "stack-lts.yaml" = error' "unversioned stack-lts.yaml is unsupported"
+   readStackConf f =
+     stripPrefix "stack-" f >>= stripSuffix ".yaml" >>= readCompactMajor
 
 stackAllFile :: FilePath
 stackAllFile = ".stack-all"
@@ -157,8 +161,8 @@ readNewestOldestLTS = do
 
 makeStackLTS :: [MajorVer] -> IO ()
 makeStackLTS vers = do
-  configs <- mapMaybe readStackConf <$> listDirectory "."
-  forM_ vers $ \ ver -> do
+  configs <- readStackConfigs
+  forM_ vers $ \ver -> do
     let newfile = configFile ver
     if ver `elem` configs
       then do
