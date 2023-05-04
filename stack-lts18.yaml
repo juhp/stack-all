@@ -1,0 +1,4 @@
+resolver: lts-18.28
+flags:
+  stack-all:
+    aeson1: true

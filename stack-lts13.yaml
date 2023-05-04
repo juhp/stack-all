@@ -4,3 +4,6 @@ extra-deps:
   - simple-cmd-args-0.1.6
   - http-query-0.1.0
   - cached-json-file-0.1.0
+flags:
+  stack-all:
+    aeson1: true

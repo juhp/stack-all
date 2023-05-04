@@ -1,3 +1,6 @@
 resolver: lts-16.31
 extra-deps:
   - cached-json-file-0.1.0
+flags:
+  stack-all:
+    aeson1: true
