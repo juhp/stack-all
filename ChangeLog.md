@@ -1,5 +1,8 @@
 # Release history for stack-all
 
+## 0.4.2 (2023-05-05)
+- support unversioned "lts" argument
+
 ## 0.4.1 (2023-02-20)
 - ignore nightly as a base when creating a new lts file
 
