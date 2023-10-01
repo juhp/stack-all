@@ -8,7 +8,7 @@ This is how I do my Haskell build CI for projects locally with stack.
 
 `stack-all` by default runs `stack build` over Stackage Nightly and
 LTS major versions
-(current default is nightly & LTS 20, 19, 18, 16, 14, 13, 12, 11)
+(current default is nightly & LTS 21, 20, 19, 18, 16, 14, 13, 12, 11)
 corresponding to latest major ghc minor versions,
 with appropriate stack `--resolver` options.
 
@@ -17,6 +17,33 @@ If no `stack.yaml` file is found, `stack-all` will create one.
 Of course it may still fail to build, but this allows for
 quickly trying to build a package that does not include stack support.
 
+### Help output
+```shellsession
+$ stack-all --version
+0.4.2
+$ stack-all --help
+Build over Stackage versions
+
+Usage: stack-all [--version] [(-c|--create-config) | (-s|--make-lts)]
+                 [-k|--keep-going] [-d|--debug] [--refresh-cache]
+                 [-n|--newest MAJOR] [(-o|--oldest MAJOR) | (-a|--all-lts)]
+                 [MAJORVER... [COMMAND...]]
+
+  stack-all builds projects easily across different Stackage versions
+
+Available options:
+  -h,--help                Show this help text
+  --version                Show version
+  -c,--create-config       Create a project .stack-all file
+  -s,--make-lts            Create a stack-ltsXX.yaml file
+  -k,--keep-going          Keep going even if an LTS fails
+  -d,--debug               Verbose stack build output on error
+  --refresh-cache          Force refresh of stackage snapshots.json cache
+  -n,--newest MAJOR        Newest LTS release to build from
+  -o,--oldest MAJOR        Oldest compatible LTS release
+  -a,--all-lts             Try to build back to LTS 1 even
+```
+
 ### Overriding stack.yaml
 `stack-all` can use `stack-ltsXX.yaml` files to override the default
 `stack.yaml` file for particular Stackage major versions.
@@ -24,11 +51,11 @@ Note that a `stack-ltsXX.yaml` file will also be used for
 older LTS major versions until another `stack-ltsYY.yaml` file is found.
 `stack-nightly.yaml` is also supported, but used only for nightly.
 
-For example if you have `stack-lts18.yaml` and `stack-lts13.yaml` files
+For example if you have `stack-lts19.yaml` and `stack-lts16.yaml` files
 in your project,
-then `stack.yaml` will be used as normal to build nightly, lts-20 and lts-19,
-but `stack-lts18.yaml` will be used for building lts-18 and lts-16,
-and `stack-lts14.yaml` will be used for lts-14, lts-13 (and older).
+then `stack.yaml` will be used as normal to build nightly, lts-21 and lts-20,
+but `stack-lts19.yaml` will be used for building lts-19 and lts-18,
+and `stack-lts16.yaml` will be used for lts-16, lts-14 (and older).
 Since `stack-all` overrides the exact resolver with the latest minor snapshot,
 the exact minor Stackage version specified in the `stack*.yaml` files
 doesn't actually matter: `stack-all` always uses the latest published
@@ -47,14 +74,14 @@ You can abbreviate `lts-XX` args to `ltsXX` on the commandline.
 There are `--oldest`  and `--newest` options to specify the range of
 lts versions to build over:
 
-You can specify the oldest major LTS to build for with eg `stack-all -o lts13`.
+You can specify the oldest major LTS to build for with eg `stack-all -o lts14`.
 Otherwise if not configured the default oldest LTS is currently `lts-11`.
 
 Similarly you can specify the newest LTS version to build from with
-eg `stack-all -n lts18`. (The default is to build from nightly.)
+eg `stack-all -n lts19`. (The default is to build from nightly.)
 
 Alternatively, one can give one or more explicit LTS major versions to build
-for as arguments: eg `stack-all lts16` if you only wish to build that version.
+for as arguments: eg `stack-all lts18` if you only wish to build that version.
 
 ### Configuring the oldest and/or newest LTS to build
 You can configure the oldest working LTS major version for your project
@@ -69,7 +96,7 @@ oldest = lts-16
 This specifies that the oldest LTS version to build for is lts-16.
 
 The newest LTS to build with stack-all can similarly be configured:
-`stack-all -c -n lts19` or setting `newest = lts-19`.
+`stack-all -c -n lts20` or setting `newest = lts-20`.
 
 ### Running other stack commands
 By default `stack-all` just runs the stack `build` command over
