@@ -2,6 +2,7 @@ resolver: lts-14.27
 extra-deps:
   - http-query-0.1.0
   - cached-json-file-0.1.0
+  - simple-cmd-args-0.1.8
 flags:
   stack-all:
     aeson1: true

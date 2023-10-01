@@ -29,30 +29,30 @@ excludedMajors = [LTS 17, LTS 15, LTS 7, LTS 3, LTS 0]
 
 getMajorVers :: IO [MajorVer]
 getMajorVers = do
-  obj <- getSnapshots
+  obj <- getSnapshots False
   return $ reverse . sort $ map (readMajor . T.unpack . toText) (M.keys obj \\ ["lts"]) \\ excludedMajors
 #if !MIN_VERSION_aeson(2,0,0)
   where toText = id
 #endif
 
-latestMajorSnapshot :: MajorVer -> IO (Maybe String)
-latestMajorSnapshot ver = do
-  lookupKey (T.pack (showMajor ver)) <$> getSnapshots
+latestMajorSnapshot :: Bool -> MajorVer -> IO (Maybe String)
+latestMajorSnapshot forcerefresh ver = do
+  lookupKey (T.pack (showMajor ver)) <$> getSnapshots forcerefresh
 
-getSnapshots :: IO Object
-getSnapshots =
-  getCachedJSON "stackage-snapshots" "snapshots.json" "http://haddock.stackage.org/snapshots.json" 200
+getSnapshots :: Bool -> IO Object
+getSnapshots forcerefresh =
+  getCachedJSON "stackage-snapshots" "snapshots.json" "http://haddock.stackage.org/snapshots.json" $ if forcerefresh then 0 else 200 --minutes
 
-latestLTS :: IO MajorVer
-latestLTS = do
-  msnap <- lookupKey "lts" <$> getSnapshots
+latestLTS :: Bool -> IO MajorVer
+latestLTS refresh = do
+  msnap <- lookupKey "lts" <$> getSnapshots refresh
   case msnap of
     Just snap -> return $ snapMajorVer snap
     Nothing -> error' "could not resolve lts major version"
 
-latestLtsSnapshot :: IO String
-latestLtsSnapshot = do
-  msnap <- resolveMajor LatestLTS >>= latestMajorSnapshot
+latestLtsSnapshot :: Bool -> IO String
+latestLtsSnapshot refresh = do
+  msnap <- resolveMajor LatestLTS >>= latestMajorSnapshot refresh
   case msnap of
     Nothing ->
       error' "failed to determine latest lts snapshot"
@@ -60,5 +60,5 @@ latestLtsSnapshot = do
 
 -- converts 'lts' to actual version
 resolveMajor :: MajorVerAlias -> IO MajorVer
-resolveMajor LatestLTS = latestLTS
+resolveMajor LatestLTS = latestLTS False
 resolveMajor (MajorVer ver) = return ver

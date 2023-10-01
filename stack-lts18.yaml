@@ -1,4 +1,6 @@
 resolver: lts-18.28
+extra-deps:
+  - simple-cmd-args-0.1.8
 flags:
   stack-all:
     aeson1: true

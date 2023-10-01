@@ -1,7 +1,8 @@
 # Release history for stack-all
 
-## 0.4.2 (2023-05-05)
+## 0.4.2 (2023-10-01)
 - support unversioned "lts" argument
+- add --refresh-cache option to force refresh of cached snapshots.json
 
 ## 0.4.1 (2023-02-20)
 - ignore nightly as a base when creating a new lts file

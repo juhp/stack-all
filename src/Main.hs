@@ -36,14 +36,15 @@ main = do
      flagWith DefaultRun MakeStackLTS 's' "make-lts" "Create a stack-ltsXX.yaml file") <*>
     switchWith 'k' "keep-going" "Keep going even if an LTS fails" <*>
     switchWith 'd' "debug" "Verbose stack build output on error" <*>
+    switchLongWith "refresh-cache" "Force refresh of stackage snapshots.json cache" <*>
     optional (readMajor <$> strOptionWith 'n' "newest" "MAJOR" "Newest LTS release to build from") <*>
     (Oldest . readMajor <$> strOptionWith 'o' "oldest" "MAJOR" "Oldest compatible LTS release" <|>
      flagWith DefaultLimit AllVersions 'a' "all-lts" "Try to build back to LTS 1 even") <*>
     many (strArg "MAJORVER... [COMMAND...]")
 
-run :: Command -> Bool ->Bool -> Maybe MajorVer -> VersionLimit -> [String]
-    -> IO ()
-run command keepgoing debug mnewest verlimit verscmd = do
+run :: Command -> Bool ->Bool -> Bool -> Maybe MajorVer
+    -> VersionLimit -> [String] -> IO ()
+run command keepgoing debug refresh mnewest verlimit verscmd = do
   findStackProjectDir Nothing
   case command of
     CreateConfig ->
@@ -54,12 +55,12 @@ run command keepgoing debug mnewest verlimit verscmd = do
       (versions, _) <- getVersionsCmd
       if null versions
         then error' "--make-lts needs an LTS major version"
-        else makeStackLTS versions
+        else makeStackLTS refresh versions
     DefaultRun -> do
       (versions, cargs) <- getVersionsCmd
       configs <- readStackConfigs
       let newestFilter = maybe id (filter . (>=)) mnewest
-      mapM_ (stackBuild configs keepgoing debug cargs) (newestFilter versions)
+      mapM_ (stackBuild configs keepgoing debug refresh cargs) (newestFilter versions)
   where
     findStackProjectDir :: Maybe FilePath -> IO ()
     findStackProjectDir mcwd = do
@@ -80,7 +81,7 @@ run command keepgoing debug mnewest verlimit verscmd = do
             -- FIXME take suggested extra-deps into stack.yaml
             -- FIXME stack init content too verbose
             unlessM (cmdBool "stack" ["init"]) $ do
-              snap <- latestLtsSnapshot
+              snap <- latestLtsSnapshot refresh
               writeFile "stack.yaml" $ "resolver: " ++ snap ++ "\n"
             else error' "no package/project found"
 
@@ -159,8 +160,8 @@ readNewestOldestLTS = do
       ini <- T.readFile inifile
       return $ either error id $ parseIniFile ini iniparser
 
-makeStackLTS :: [MajorVer] -> IO ()
-makeStackLTS vers = do
+makeStackLTS :: Bool -> [MajorVer] -> IO ()
+makeStackLTS refresh vers = do
   configs <- readStackConfigs
   forM_ vers $ \ver -> do
     let newfile = configFile ver
@@ -174,14 +175,15 @@ makeStackLTS vers = do
         Just conf -> do
           let origfile = configFile conf
           copyFile origfile newfile
-      whenJustM (latestMajorSnapshot ver) $ \latest ->
+      whenJustM (latestMajorSnapshot refresh ver) $ \latest ->
         cmd_ "sed" ["-i", "-e", "s/\\(resolver:\\) .*/\\1 " ++ latest ++ "/", newfile]
 
 configFile :: MajorVer -> FilePath
 configFile ver = "stack-" ++ showCompact ver <.> "yaml"
 
-stackBuild :: [MajorVer] -> Bool -> Bool -> [String] -> MajorVer -> IO ()
-stackBuild configs keepgoing debug command ver = do
+stackBuild :: [MajorVer] -> Bool -> Bool -> Bool -> [String]
+           -> MajorVer -> IO ()
+stackBuild configs keepgoing debug refresh command ver = do
   let mcfgver =
         case ver of
           Nightly | Nightly `elem` configs -> Just Nightly
@@ -189,7 +191,7 @@ stackBuild configs keepgoing debug command ver = do
             case sort (filter (ver <=) (delete Nightly configs)) of
               [] -> Nothing
               (cfg:_) -> Just cfg
-  latest <- latestMajorSnapshot ver
+  latest <- latestMajorSnapshot refresh ver
   case latest of
     Nothing -> error' $ "no snapshot not found for " ++ showMajor ver
     Just minor -> do
