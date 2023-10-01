@@ -45,7 +45,6 @@ executable stack-all
                      , simple-cmd >= 0.1.4
                      , simple-cmd-args >= 0.1.8
                      , text
-                     , time
   if flag(aeson1)
        build-depends: unordered-containers
   default-language:    Haskell2010
