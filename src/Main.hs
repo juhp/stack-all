@@ -241,8 +241,11 @@ fileWithExtension dir ext = do
 
 -- looks in current dir for a unique file with given extension
 doesFileExistWithExtension :: FilePath -> String -> IO Bool
-doesFileExistWithExtension dir ext =
-  isJust <$> fileWithExtension dir ext
+doesFileExistWithExtension dir ext = do
+  mf <- fileWithExtension dir ext
+  case mf of
+    Nothing -> return False
+    Just f -> doesFileExist f
 
 #if !MIN_VERSION_filepath(1,4,2)
 isExtensionOf :: String -> FilePath -> Bool
