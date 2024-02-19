@@ -10,7 +10,6 @@ module MajorVer (
   )
 where
 
-import Control.Applicative
 import Data.List.Extra
 import SimpleCmd (error')
 import Text.Read (readMaybe)
@@ -21,12 +20,27 @@ data MajorVer = LTS Int | LTSLatest | Nightly
 
 maybeReadMajor :: String -> Maybe MajorVer
 maybeReadMajor "nightly" = Just Nightly
-maybeReadMajor ver =
-  if "lts" `isPrefixOf` ver then
-    case readMaybe (dropPrefix "lts-" ver) <|> readMaybe (dropPrefix "lts" ver) of
-      Just major -> Just (LTS major)
-      Nothing -> Nothing
-  else Nothing
+maybeReadMajor ver
+  | "lts" `isPrefixOf` ver =
+      case readMaybe (dropPrefix "-" (dropPrefix "lts-" ver)) of
+        Just major -> Just (LTS major)
+        Nothing -> Nothing
+  | "ghc" `isPrefixOf` ver =
+      case dropPrefix "-" (dropPrefix "ghc" ver) of
+        "9.6" -> Just (LTS 22)
+        "9.4" -> Just (LTS 21)
+        "9.2" -> Just (LTS 20)
+        "9.0" -> Just (LTS 19)
+        "8.10" -> Just (LTS 18)
+        "8.8" -> Just (LTS 16)
+        "8.6" -> Just (LTS 14)
+        "8.4" -> Just (LTS 12)
+        "8.2" -> Just (LTS 11)
+        "8.0" -> Just (LTS 9)
+        "7.10" -> Just (LTS 6)
+        "7.8" -> Just (LTS 2)
+        _ -> Nothing
+  | otherwise = Nothing
 
 -- readMajor "lts-16"
 readMajor :: String -> MajorVer
@@ -36,7 +50,7 @@ readMajor ver =
   case maybeReadMajor ver of
     Just s -> s
     Nothing ->
-      error' $! "couldn't parse " ++ ver ++ " (expected lts-XX or ltsXX)"
+      error' $! "couldn't parse " ++ ver ++ " (expected lts-XX, ltsXX, ghc-X.Y or ghcX.Y)"
 
 -- readCompactMajor "lts16"
 -- Should we support "stack-lts.yaml"?
