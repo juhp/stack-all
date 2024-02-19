@@ -17,6 +17,7 @@ import qualified Data.Aeson.KeyMap as M
 #else
 import qualified Data.HashMap.Lazy as M
 #endif
+import Data.Ord (comparing, Down(Down))
 import qualified Data.Text as T
 import Network.HTTP.Query
 import SimpleCmd (error')
@@ -30,7 +31,9 @@ excludedMajors = [LTS 17, LTS 15, LTS 7, LTS 3, LTS 0]
 getMajorVers :: IO [MajorVer]
 getMajorVers = do
   obj <- getSnapshots False
-  return $ reverse . sort $ map (readMajor . T.unpack . toText) (M.keys obj \\ ["lts"]) \\ excludedMajors
+  return $
+    sortBy (comparing Down) $
+    map (readMajor . T.unpack . toText) (M.keys obj \\ ["lts"]) \\ excludedMajors
 #if !MIN_VERSION_aeson(2,0,0)
   where toText = id
 #endif
