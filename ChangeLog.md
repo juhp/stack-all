@@ -1,5 +1,10 @@
 # Release history for stack-all
 
+## 0.5 (2024-02-19)
+- support ghc-X.Y/ghcX.Y aliases for lts major versions
+- default oldest lts bumped from lts-11 (ghc8.2) to lts-16 (ghc8.8)
+- ignore .cabal file directory
+
 ## 0.4.2 (2023-10-01)
 - support unversioned "lts" argument
 - add --refresh-cache option to force refresh of cached snapshots.json

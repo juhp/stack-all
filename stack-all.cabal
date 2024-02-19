@@ -1,5 +1,5 @@
 name:                stack-all
-version:             0.4.2
+version:             0.5
 synopsis:            CLI tool for building across Stackage major versions
 description:
         Build your Haskell project over Stackage major LTS versions.
@@ -7,7 +7,7 @@ license:             BSD3
 license-file:        LICENSE
 author:              Jens Petersen <juhpetersen@gmail.com>
 maintainer:          Jens Petersen <juhpetersen@gmail.com>
-copyright:           2020-2023  Jens Petersen <juhpetersen@gmail.com>
+copyright:           2020-2024  Jens Petersen <juhpetersen@gmail.com>
 category:            Distribution
 homepage:            https://github.com/juhp/stack-all
 bug-reports:         https://github.com/juhp/stack-all/issues
@@ -16,7 +16,8 @@ extra-doc-files:     README.md
                      ChangeLog.md
 cabal-version:       1.18
 tested-with:         GHC == 8.0.2, GHC == 8.2.2, GHC == 8.4.4, GHC == 8.6.5,
-                     GHC == 8.8.4, GHC == 8.10.7, GHC == 9.0.2, GHC == 9.2.7
+                     GHC == 8.8.4, GHC == 8.10.7, GHC == 9.0.2, GHC == 9.2.8,
+                     GHC == 9.4.8, GHC == 9.6.4, GHC == 9.8.1
 
 source-repository head
   type:                git
