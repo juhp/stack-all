@@ -1,5 +1,5 @@
 name:                stack-all
-version:             0.5
+version:             0.5.1
 synopsis:            CLI tool for building across Stackage major versions
 description:
         Build your Haskell project over Stackage major LTS versions.
@@ -17,7 +17,7 @@ extra-doc-files:     README.md
 cabal-version:       1.18
 tested-with:         GHC == 8.0.2, GHC == 8.2.2, GHC == 8.4.4, GHC == 8.6.5,
                      GHC == 8.8.4, GHC == 8.10.7, GHC == 9.0.2, GHC == 9.2.8,
-                     GHC == 9.4.8, GHC == 9.6.4, GHC == 9.8.1
+                     GHC == 9.4.8, GHC == 9.6.4, GHC == 9.8.2
 
 source-repository head
   type:                git

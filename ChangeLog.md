@@ -1,5 +1,8 @@
 # Release history for stack-all
 
+## 0.5.1 (2024-03-19)
+- update the stackage snapshots.json url
+
 ## 0.5 (2024-02-19)
 - support ghc-X.Y/ghcX.Y aliases for lts major versions
 - default oldest lts bumped from lts-11 (ghc8.2) to lts-16 (ghc8.8)
