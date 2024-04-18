@@ -22,7 +22,7 @@ maybeReadMajor :: String -> Maybe MajorVer
 maybeReadMajor "nightly" = Just Nightly
 maybeReadMajor ver
   | "lts" `isPrefixOf` ver =
-      case readMaybe (dropPrefix "-" (dropPrefix "lts-" ver)) of
+      case readMaybe (dropPrefix "-" (dropPrefix "lts" ver)) of
         Just major -> Just (LTS major)
         Nothing -> Nothing
   | "ghc" `isPrefixOf` ver =
