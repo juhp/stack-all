@@ -21,7 +21,7 @@ quickly trying to build a package that does not include stack support.
 ### Help output
 `$ stack-all --version`
 ```
-0.5.1
+0.5.2
 ```
 `$ stack-all --help`
 ```

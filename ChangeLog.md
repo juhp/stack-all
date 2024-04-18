@@ -1,5 +1,9 @@
 # Release history for stack-all
 
+## 0.5.2 (2024-04-18)
+- fix parsing of ltsXX
+- use https for snapshots url
+
 ## 0.5.1 (2024-03-19)
 - update the stackage snapshots.json url
 
