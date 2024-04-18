@@ -44,7 +44,7 @@ latestMajorSnapshot forcerefresh ver = do
 
 getSnapshots :: Bool -> IO Object
 getSnapshots forcerefresh =
-  getCachedJSON "stackage-snapshots" "snapshots.json" "http://www.stackage.org/download/snapshots.json" $ if forcerefresh then 0 else 200 --minutes
+  getCachedJSON "stackage-snapshots" "snapshots.json" "https://www.stackage.org/download/snapshots.json" $ if forcerefresh then 0 else 200 --minutes
 
 latestLTS :: Bool -> IO MajorVer
 latestLTS refresh = do
