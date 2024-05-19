@@ -8,7 +8,7 @@ This is how I do my Haskell build CI for projects locally with stack.
 
 `stack-all` by default runs `stack build` over Stackage Nightly and
 LTS major versions
-(current default is nightly & major LTS versions back to lts-16)
+(current default is nightly & major LTS versions back to lts-18)
 corresponding to latest major ghc minor versions,
 with appropriate stack `--resolver` options.
 
@@ -80,26 +80,26 @@ eg `ghc9.6` corresponds to `lts22` or `ghc-9.2` to `lts-20`.
 There are `--oldest`  and `--newest` options to specify the range of
 lts versions to build over:
 
-You can specify the oldest major LTS to build for with eg `stack-all -o lts14`.
-Otherwise if not configured the default oldest LTS is currently `lts-16`.
+You can specify the oldest major LTS to build for with eg `stack-all -o lts16`.
+Otherwise if not configured the default oldest LTS is currently `lts-18`.
 
 Similarly you can specify the newest LTS version to build from with
 eg `stack-all -n lts20`. (The default is to build from nightly.)
 
 Alternatively, one can give one or more explicit LTS major versions to build
-for as arguments: eg `stack-all lts18` if you only wish to build that version.
+for as arguments: eg `stack-all lts19` if you only wish to build that version.
 
 ### Configuring the oldest and/or newest LTS to build
 You can configure the oldest working LTS major version for your project
-by running for example `stack-all -c -o lts-18` which generates a `.stack-all`
+by running for example `stack-all -c -o lts-19` which generates a `.stack-all`
 project config file like this:
 ```
 [versions]
-# lts-16 too old
-oldest = lts-18
+# lts-18 too old
+oldest = lts-19
 ```
 (the comment line can be used to document why the older LTS doesn't work).
-This specifies that the oldest LTS version to build for is lts-18.
+This specifies that the oldest LTS version to build for is lts-19.
 
 The newest LTS to build with stack-all can similarly be configured:
 `stack-all -c -n lts21` or setting `newest = lts-21`.

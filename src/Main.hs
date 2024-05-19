@@ -20,7 +20,7 @@ import Paths_stack_all (version)
 import Snapshots
 
 defaultOldestLTS :: MajorVer
-defaultOldestLTS = LTS 16
+defaultOldestLTS = LTS 18
 
 data VersionLimit = DefaultLimit | Oldest MajorVer | AllVersions
 
