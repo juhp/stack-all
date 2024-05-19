@@ -46,20 +46,23 @@ run :: Command -> Bool ->Bool -> Bool -> Maybe MajorVer
     -> VersionLimit -> [String] -> IO ()
 run command keepgoing debug refresh mnewest verlimit verscmd = do
   whenJustM findStackProjectDir setCurrentDirectory
+  (versions, cargs) <- getVersionsCmd
   case command of
-    CreateConfig ->
+    CreateConfig -> do
+      unless (null cargs) $
+        error' "cannot combine --create-config with stack commands"
+      unless (null versions) $
+        error' "cannot combine --create-config with major versions"
       case verlimit of
         Oldest oldest -> createStackAll (Just oldest) mnewest
         _ -> createStackAll Nothing mnewest
     MakeStackLTS -> do
-      (versions, cargs) <- getVersionsCmd
       unless (null cargs) $
         error' "cannot combine --make-lts with stack commands"
       if null versions
         then error' "--make-lts needs an LTS major version"
         else makeStackLTS refresh versions
     DefaultRun -> do
-      (versions, cargs) <- getVersionsCmd
       configs <- readStackConfigs
       let newestFilter = maybe id (filter . (>=)) mnewest
       mapM_ (stackBuild configs keepgoing debug refresh cargs) (newestFilter versions)
