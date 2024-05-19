@@ -52,7 +52,9 @@ run command keepgoing debug refresh mnewest verlimit verscmd = do
         Oldest oldest -> createStackAll (Just oldest) mnewest
         _ -> createStackAll Nothing mnewest
     MakeStackLTS -> do
-      (versions, _) <- getVersionsCmd
+      (versions, cargs) <- getVersionsCmd
+      unless (null cargs) $
+        error' "cannot combine --make-lts with stack commands"
       if null versions
         then error' "--make-lts needs an LTS major version"
         else makeStackLTS refresh versions
