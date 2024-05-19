@@ -1,5 +1,11 @@
 # Release history for stack-all
 
+## 0.6 (2024-05-19)
+- stack-all now works outside of projects too like stack does
+- error when --make-lts combined with a command args
+- also error for --create-config with versions or command args
+- bump default oldest lts from 16 to 18 (ghc-8.10)
+
 ## 0.5.2 (2024-04-18)
 - fix parsing of ltsXX
 - use https for snapshots url

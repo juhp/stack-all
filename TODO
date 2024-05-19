@@ -12,3 +12,7 @@
 - global config for default oldest lts
 
 - print ghc versions
+
+- workaround exec needing -- before prog options ?
+
+- fetch stack.yaml from github project?

@@ -12,24 +12,28 @@ LTS major versions
 corresponding to latest major ghc minor versions,
 with appropriate stack `--resolver` options.
 
-Note that `stack` only works if a `stack.yaml` file exists.
+Note that `stack` only works in a project if a `stack.yaml` file exists.
 If no `stack.yaml` file is found in a .cabal project,
 `stack-all` will create one.
 Of course it may still fail to build, but this allows for
-quickly trying to build a package that does not include stack support.
+quickly experiments to build a package that does not include stack support.
+
+Since 0.6, stack-all also works outside projects, like stack itself does.
 
 ### Help output
 `$ stack-all --version`
+
 ```
-0.5.2
+0.6
 ```
 `$ stack-all --help`
+
 ```
 Build over Stackage versions
 
-Usage: stack-all [--version] [(-c|--create-config) | (-s|--make-lts)] 
-                 [-k|--keep-going] [-d|--debug] [--refresh-cache] 
-                 [-n|--newest MAJOR] [(-o|--oldest MAJOR) | (-a|--all-lts)] 
+Usage: stack-all [--version] [(-c|--create-config) | (-s|--make-lts)]
+                 [-k|--keep-going] [-d|--debug] [--refresh-cache]
+                 [-n|--newest MAJOR] [(-o|--oldest MAJOR) | (-a|--all-lts)]
                  [MAJORVER... [COMMAND...]]
 
   stack-all builds projects easily across different Stackage versions
@@ -123,5 +127,4 @@ The project is released on Hackage.
 You can also build from git source with `stack install` or `cabal install`.
 
 ## Collaboration
-The project is hosted at https://github.com/juhp/stack-all
-under a BSD license.
+The project is hosted at https://github.com/juhp/stack-all under a BSD license.
