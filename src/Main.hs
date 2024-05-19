@@ -45,7 +45,7 @@ main = do
 run :: Command -> Bool ->Bool -> Bool -> Maybe MajorVer
     -> VersionLimit -> [String] -> IO ()
 run command keepgoing debug refresh mnewest verlimit verscmd = do
-  findStackProjectDir Nothing
+  whenJustM findStackProjectDir setCurrentDirectory
   case command of
     CreateConfig ->
       case verlimit of
@@ -62,19 +62,17 @@ run command keepgoing debug refresh mnewest verlimit verscmd = do
       let newestFilter = maybe id (filter . (>=)) mnewest
       mapM_ (stackBuild configs keepgoing debug refresh cargs) (newestFilter versions)
   where
-    findStackProjectDir :: Maybe FilePath -> IO ()
-    findStackProjectDir mcwd = do
+    findStackProjectDir :: IO (Maybe FilePath)
+    findStackProjectDir = do
       haveStackYaml <- doesFileExist "stack.yaml"
+      mcwdir <- Just <$> getCurrentDirectory
       if haveStackYaml
-        then return ()
-        else do
-        cwdir <- getCurrentDirectory
-        if cwdir /= "/"
-          then setCurrentDirectory ".." >>
-               findStackProjectDir (if isJust mcwd then mcwd else Just cwdir)
+        then return mcwdir
+        else
+        if mcwdir /= Just "/"
+          then withCurrentDirectory ".." findStackProjectDir
           else do
           putStrLn "stack.yaml not found"
-          whenJust mcwd setCurrentDirectory
           haveCabalFile <- doesFileExistWithExtension "." ".cabal"
           if haveCabalFile
             then do
@@ -83,7 +81,10 @@ run command keepgoing debug refresh mnewest verlimit verscmd = do
             unlessM (cmdBool "stack" ["init"]) $ do
               snap <- latestLtsSnapshot refresh
               writeFile "stack.yaml" $ "resolver: " ++ snap ++ "\n"
-            else error' "no package/project found"
+            return mcwdir
+            else do
+            putStrLn "no package/project found"
+            return Nothing
 
     getVersionsCmd :: IO ([MajorVer],[String])
     getVersionsCmd = do
