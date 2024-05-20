@@ -1,5 +1,8 @@
 # Release history for stack-all
 
+## 0.6.1 (2024-05-20)
+- fix --create-config and --make-lts failing if no command
+
 ## 0.6 (2024-05-19)
 - stack-all now works outside of projects too like stack does
 - error when --make-lts combined with a command args

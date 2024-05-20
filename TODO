@@ -16,3 +16,7 @@
 - workaround exec needing -- before prog options ?
 
 - fetch stack.yaml from github project?
+
+- --half to skip every other major lts ?
+
+- short commands: b, i, t, etc

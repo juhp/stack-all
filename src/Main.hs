@@ -50,7 +50,7 @@ run command keepgoing debug refresh mnewest verlimit verscmd = do
   case command of
     CreateConfig -> do
       unless (null cargs) $
-        error' "cannot combine --create-config with stack commands"
+        error' $ "cannot combine --create-config with stack commands:" +-+ unwords cargs
       unless (null versions) $
         error' "cannot combine --create-config with major versions"
       case verlimit of
@@ -58,14 +58,14 @@ run command keepgoing debug refresh mnewest verlimit verscmd = do
         _ -> createStackAll Nothing mnewest
     MakeStackLTS -> do
       unless (null cargs) $
-        error' "cannot combine --make-lts with stack commands"
+        error' $ "cannot combine --make-lts with stack commands:" +-+ unwords cargs
       if null versions
         then error' "--make-lts needs an LTS major version"
         else makeStackLTS refresh versions
     DefaultRun -> do
       configs <- readStackConfigs
       let newestFilter = maybe id (filter . (>=)) mnewest
-      mapM_ (stackBuild configs keepgoing debug refresh cargs) (newestFilter versions)
+      mapM_ (runStack configs keepgoing debug refresh $ if null cargs then ["build"] else cargs) (newestFilter versions)
   where
     findStackProjectDir :: IO (Maybe FilePath)
     findStackProjectDir = do
@@ -110,7 +110,7 @@ run command keepgoing debug refresh mnewest verlimit verscmd = do
             AllVersions -> return allMajors
             Oldest ver -> return $ filter (inRange Nightly ver) allMajors
         else nub <$> mapM resolveMajor verlist
-      return (versions,if null cmds then ["build"] else cmds)
+      return (versions,cmds)
       where
         inRange :: MajorVer -> MajorVer -> MajorVer -> Bool
         inRange newest oldest v = v >= oldest && v <= newest
@@ -187,9 +187,9 @@ makeStackLTS refresh vers = do
 configFile :: MajorVer -> FilePath
 configFile ver = "stack-" ++ showCompact ver <.> "yaml"
 
-stackBuild :: [MajorVer] -> Bool -> Bool -> Bool -> [String]
+runStack :: [MajorVer] -> Bool -> Bool -> Bool -> [String]
            -> MajorVer -> IO ()
-stackBuild configs keepgoing debug refresh command ver = do
+runStack configs keepgoing debug refresh command ver = do
   let mcfgver =
         case ver of
           Nightly | Nightly `elem` configs -> Just Nightly

@@ -24,16 +24,16 @@ Since 0.6, stack-all also works outside projects, like stack itself does.
 `$ stack-all --version`
 
 ```
-0.6
+0.6.1
 ```
 `$ stack-all --help`
 
 ```
 Build over Stackage versions
 
-Usage: stack-all [--version] [(-c|--create-config) | (-s|--make-lts)]
-                 [-k|--keep-going] [-d|--debug] [--refresh-cache]
-                 [-n|--newest MAJOR] [(-o|--oldest MAJOR) | (-a|--all-lts)]
+Usage: stack-all [--version] [(-c|--create-config) | (-s|--make-lts)] 
+                 [-k|--keep-going] [-d|--debug] [--refresh-cache] 
+                 [-n|--newest MAJOR] [(-o|--oldest MAJOR) | (-a|--all-lts)] 
                  [MAJORVER... [COMMAND...]]
 
   stack-all builds projects easily across different Stackage versions
