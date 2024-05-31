@@ -15,9 +15,10 @@ with appropriate stack `--resolver` options.
 
 Note that `stack` only works in a project if a `stack.yaml` file exists.
 If no `stack.yaml` file is found in a .cabal project,
-`stack-all` will create one.
+`stack-all` will create one,
+if there is a .cabal or "package.yaml" file.
 Of course it may still fail to build, but this allows for
-quickly experiments to build a package that does not include stack support.
+quick experiments to build a package that does not include stack support.
 
 Since 0.6, stack-all also works outside projects, like stack itself does.
 

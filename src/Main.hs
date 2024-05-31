@@ -94,8 +94,10 @@ run mcommand keepgoing debug refresh mnewest verlimit verscmd = do
           then withCurrentDirectory ".." findStackProjectDir
           else do
           putStrLn $ stackYaml +-+ "not found"
-          haveCabalFile <- doesFileExistWithExtension "." ".cabal"
-          if haveCabalFile
+          haveCabalPackageFile <-
+            doesFileExistWithExtension "." ".cabal" ||^
+            doesFileExist "package.yaml"
+          if haveCabalPackageFile
             then do
             -- FIXME take suggested extra-deps into stack.yaml
             -- FIXME stack init content too verbose

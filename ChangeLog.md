@@ -3,6 +3,7 @@
 ## 0.6.2 (2024-05-21)
 - `--default-resolver` to update stack.yaml resolver
 - change `--debug` short option to `-D`
+- test for `package.yaml` if no .cabal file
 
 ## 0.6.1 (2024-05-20)
 - fix `--create-config` and `--make-lts` failing if no command
