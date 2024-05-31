@@ -1,12 +1,16 @@
 # Release history for stack-all
 
+## 0.6.2 (2024-05-21)
+- `--default-resolver` to update stack.yaml resolver
+- change `--debug` short option to `-D`
+
 ## 0.6.1 (2024-05-20)
-- fix --create-config and --make-lts failing if no command
+- fix `--create-config` and `--make-lts` failing if no command
 
 ## 0.6 (2024-05-19)
 - stack-all now works outside of projects too like stack does
-- error when --make-lts combined with a command args
-- also error for --create-config with versions or command args
+- error when `--make-lts` combined with a command args
+- also error for `--create-config` with versions or command args
 - bump default oldest lts from 16 to 18 (ghc-8.10)
 
 ## 0.5.2 (2024-04-18)

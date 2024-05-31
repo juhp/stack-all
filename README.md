@@ -1,8 +1,9 @@
 # stack-all
 
-A CLI tool for building Haskell projects easily over Stackage major versions.
+A CLI tool for building Haskell projects easily
+over several Stackage major versions.
 
-This is how I do my Haskell build CI for projects locally with stack.
+I use this to do Haskell build CI for projects locally with stack.
 
 ## Usage
 
@@ -24,16 +25,18 @@ Since 0.6, stack-all also works outside projects, like stack itself does.
 `$ stack-all --version`
 
 ```
-0.6.1
+0.6.2
 ```
 `$ stack-all --help`
 
 ```
 Build over Stackage versions
 
-Usage: stack-all [--version] [(-c|--create-config) | (-s|--make-lts)] 
-                 [-k|--keep-going] [-d|--debug] [--refresh-cache] 
-                 [-n|--newest MAJOR] [(-o|--oldest MAJOR) | (-a|--all-lts)] 
+Usage: stack-all [--version] 
+                 [(-c|--create-config) | (-d|--default-resolver) | 
+                   (-s|--make-lts)] [-k|--keep-going] [-D|--debug] 
+                 [--refresh-cache] [-n|--newest MAJOR] 
+                 [(-o|--oldest MAJOR) | (-a|--all-lts)] 
                  [MAJORVER... [COMMAND...]]
 
   stack-all builds projects easily across different Stackage versions
@@ -42,9 +45,10 @@ Available options:
   -h,--help                Show this help text
   --version                Show version
   -c,--create-config       Create a project .stack-all file
+  -d,--default-resolver    Update stack.yaml resolver
   -s,--make-lts            Create a stack-ltsXX.yaml file
   -k,--keep-going          Keep going even if an LTS fails
-  -d,--debug               Verbose stack build output on error
+  -D,--debug               Verbose stack build output on error
   --refresh-cache          Force refresh of stackage snapshots.json cache
   -n,--newest MAJOR        Newest LTS release to build from
   -o,--oldest MAJOR        Oldest compatible LTS release
