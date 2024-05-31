@@ -124,6 +124,22 @@ readStackConfigs = do
    readStackConf f =
      stripPrefix "stack-" f >>= stripSuffix ".yaml" >>= readCompactMajor
 
+readNewestOldestLTS :: IO (MajorVer,MajorVer)
+readNewestOldestLTS = do
+  haveConfig <- doesFileExist stackAllFile
+  if haveConfig then
+    readIniConfig stackAllFile $
+    section "versions" $ do
+    mnewest <- fmap readMajor <$> fieldMbOf "newest" string
+    moldest <- fmap readMajor <$> fieldMbOf "oldest" string
+    return (fromMaybe Nightly mnewest, fromMaybe defaultOldestLTS moldest)
+    else return (Nightly, defaultOldestLTS)
+  where
+    readIniConfig :: FilePath -> IniParser a -> IO a
+    readIniConfig inifile iniparser = do
+      ini <- T.readFile inifile
+      return $ either error id $ parseIniFile ini iniparser
+
 stackAllFile :: FilePath
 stackAllFile = ".stack-all"
 
@@ -149,22 +165,6 @@ createStackAll moldest mnewest = do
                 let molder = listToMaybe $ dropWhile (>= oldest) allMajors
                 in maybe "" (\s -> showMajor s ++ " too old") molder
           in "# " ++ older ++ "\noldest = " ++ showMajor oldest ++ "\n"
-
-readNewestOldestLTS :: IO (MajorVer,MajorVer)
-readNewestOldestLTS = do
-  haveConfig <- doesFileExist stackAllFile
-  if haveConfig then
-    readIniConfig stackAllFile $
-    section "versions" $ do
-    mnewest <- fmap readMajor <$> fieldMbOf "newest" string
-    moldest <- fmap readMajor <$> fieldMbOf "oldest" string
-    return (fromMaybe Nightly mnewest, fromMaybe defaultOldestLTS moldest)
-    else return (Nightly, defaultOldestLTS)
-  where
-    readIniConfig :: FilePath -> IniParser a -> IO a
-    readIniConfig inifile iniparser = do
-      ini <- T.readFile inifile
-      return $ either error id $ parseIniFile ini iniparser
 
 makeStackLTS :: Bool -> [MajorVer] -> IO ()
 makeStackLTS refresh vers = do
