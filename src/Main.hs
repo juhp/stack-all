@@ -43,7 +43,7 @@ main = do
     run <$>
     optional
     (flagWith' CreateConfig 'c' "create-config" "Create a project .stack-all file" <|>
-     flagWith' DefaultResolver 'd' "default-resolver" "Update stack.yaml resolver" <|>
+     flagWith' DefaultResolver 'd' "default-resolver" ("Update" +-+ stackYaml +-+ "resolver") <|>
      flagWith' MakeStackLTS 's' "make-lts" "Create a stack-ltsXX.yaml file") <*>
     switchWith 'k' "keep-going" "Keep going even if an LTS fails" <*>
     switchWith 'D' "debug" "Verbose stack build output on error" <*>
@@ -52,6 +52,9 @@ main = do
     (Oldest . readMajor <$> strOptionWith 'o' "oldest" "MAJOR" "Oldest compatible LTS release" <|>
      flagWith DefaultLimit AllVersions 'a' "all-lts" "Try to build back to LTS 1 even") <*>
     many (strArg "MAJORVER... [COMMAND...]")
+
+stackYaml :: FilePath
+stackYaml = "stack.yaml"
 
 run :: Maybe CommandOpt -> Bool ->Bool -> Bool -> Maybe MajorVer
     -> VersionLimit -> [String] -> IO ()
@@ -82,7 +85,7 @@ run mcommand keepgoing debug refresh mnewest verlimit verscmd = do
   where
     findStackProjectDir :: IO (Maybe FilePath)
     findStackProjectDir = do
-      haveStackYaml <- doesFileExist "stack.yaml"
+      haveStackYaml <- doesFileExist stackYaml
       mcwdir <- Just <$> getCurrentDirectory
       if haveStackYaml
         then return mcwdir
@@ -90,7 +93,7 @@ run mcommand keepgoing debug refresh mnewest verlimit verscmd = do
         if mcwdir /= Just "/"
           then withCurrentDirectory ".." findStackProjectDir
           else do
-          putStrLn "stack.yaml not found"
+          putStrLn $ stackYaml +-+ "not found"
           haveCabalFile <- doesFileExistWithExtension "." ".cabal"
           if haveCabalFile
             then do
@@ -98,7 +101,7 @@ run mcommand keepgoing debug refresh mnewest verlimit verscmd = do
             -- FIXME stack init content too verbose
             unlessM (cmdBool "stack" ["init"]) $ do
               snap <- latestLtsSnapshot refresh
-              writeFile "stack.yaml" $ "resolver: " ++ snap ++ "\n"
+              writeFile stackYaml $ "resolver: " ++ snap ++ "\n"
             return mcwdir
             else do
             putStrLn "no package/project found"
@@ -181,12 +184,12 @@ createStackAll moldest mnewest = do
 
 stackDefaultResolver :: [MajorVer] -> IO ()
 stackDefaultResolver vers = do
-  unlessM (doesFileExist "stack.yaml") $
-    error' "no stack.yaml present"
+  unlessM (doesFileExist stackYaml) $
+    error' $ "no" +-+ stackYaml +-+ "present"
   case vers of
     [ver] ->
       whenJustM (latestMajorSnapshot False ver) $ \latest ->
-      cmd_ "sed" ["-i", "-e", "s/\\(resolver:\\) .*/\\1 " ++ latest ++ "/", "stack.yaml"]
+      cmd_ "sed" ["-i", "-e", "s/\\(resolver:\\) .*/\\1 " ++ latest ++ "/", stackYaml]
     _ -> error' "only specify one major version for default resolver"
 
 makeStackLTS :: Bool -> [MajorVer] -> IO ()
@@ -200,7 +203,7 @@ makeStackLTS refresh vers = do
       else do
       let mcurrentconfig = find (ver <=) (delete Nightly configs)
       case mcurrentconfig of
-        Nothing -> copyFile "stack.yaml" newfile
+        Nothing -> copyFile stackYaml newfile
         Just conf -> do
           let origfile = configFile conf
           copyFile origfile newfile
