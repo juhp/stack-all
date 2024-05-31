@@ -24,7 +24,16 @@ defaultOldestLTS = LTS 18
 
 data VersionLimit = DefaultLimit | Oldest MajorVer | AllVersions
 
-data Command = CreateConfig | MakeStackLTS | DefaultRun
+data CommandOpt = CreateConfig | DefaultResolver | MakeStackLTS
+  deriving Eq
+
+showOpt :: CommandOpt -> String
+showOpt c =
+  "--" ++
+  case c of
+    CreateConfig -> "create-config"
+    DefaultResolver -> "default-resolver"
+    MakeStackLTS -> "make-lts"
 
 main :: IO ()
 main = do
@@ -32,37 +41,41 @@ main = do
   simpleCmdArgs' (Just version) "Build over Stackage versions"
     "stack-all builds projects easily across different Stackage versions" $
     run <$>
+    optional
     (flagWith' CreateConfig 'c' "create-config" "Create a project .stack-all file" <|>
-     flagWith DefaultRun MakeStackLTS 's' "make-lts" "Create a stack-ltsXX.yaml file") <*>
+     flagWith' DefaultResolver 'd' "default-resolver" "Update stack.yaml resolver" <|>
+     flagWith' MakeStackLTS 's' "make-lts" "Create a stack-ltsXX.yaml file") <*>
     switchWith 'k' "keep-going" "Keep going even if an LTS fails" <*>
-    switchWith 'd' "debug" "Verbose stack build output on error" <*>
+    switchWith 'D' "debug" "Verbose stack build output on error" <*>
     switchLongWith "refresh-cache" "Force refresh of stackage snapshots.json cache" <*>
     optional (readMajor <$> strOptionWith 'n' "newest" "MAJOR" "Newest LTS release to build from") <*>
     (Oldest . readMajor <$> strOptionWith 'o' "oldest" "MAJOR" "Oldest compatible LTS release" <|>
      flagWith DefaultLimit AllVersions 'a' "all-lts" "Try to build back to LTS 1 even") <*>
     many (strArg "MAJORVER... [COMMAND...]")
 
-run :: Command -> Bool ->Bool -> Bool -> Maybe MajorVer
+run :: Maybe CommandOpt -> Bool ->Bool -> Bool -> Maybe MajorVer
     -> VersionLimit -> [String] -> IO ()
-run command keepgoing debug refresh mnewest verlimit verscmd = do
+run mcommand keepgoing debug refresh mnewest verlimit verscmd = do
   whenJustM findStackProjectDir setCurrentDirectory
   (versions, cargs) <- getVersionsCmd
-  case command of
-    CreateConfig -> do
+  case mcommand of
+    Just command -> do
       unless (null cargs) $
-        error' $ "cannot combine --create-config with stack commands:" +-+ unwords cargs
-      unless (null versions) $
-        error' "cannot combine --create-config with major versions"
-      case verlimit of
-        Oldest oldest -> createStackAll (Just oldest) mnewest
-        _ -> createStackAll Nothing mnewest
-    MakeStackLTS -> do
-      unless (null cargs) $
-        error' $ "cannot combine --make-lts with stack commands:" +-+ unwords cargs
-      if null versions
-        then error' "--make-lts needs an LTS major version"
-        else makeStackLTS refresh versions
-    DefaultRun -> do
+        error' $ "cannot combine" +-+ showOpt command +-+ "with stack commands:" +-+ unwords cargs
+      case command of
+        CreateConfig -> do
+          unless (null versions) $
+            error' "cannot combine --create-config with major versions"
+          case verlimit of
+            Oldest oldest -> createStackAll (Just oldest) mnewest
+            _ -> createStackAll Nothing mnewest
+        DefaultResolver ->
+          stackDefaultResolver versions
+        MakeStackLTS ->
+          if null versions
+            then error' "--make-lts needs an LTS major version"
+            else makeStackLTS refresh versions
+    Nothing -> do
       configs <- readStackConfigs
       let newestFilter = maybe id (filter . (>=)) mnewest
       mapM_ (runStack configs keepgoing debug refresh $ if null cargs then ["build"] else cargs) (newestFilter versions)
@@ -165,6 +178,16 @@ createStackAll moldest mnewest = do
                 let molder = listToMaybe $ dropWhile (>= oldest) allMajors
                 in maybe "" (\s -> showMajor s ++ " too old") molder
           in "# " ++ older ++ "\noldest = " ++ showMajor oldest ++ "\n"
+
+stackDefaultResolver :: [MajorVer] -> IO ()
+stackDefaultResolver vers = do
+  unlessM (doesFileExist "stack.yaml") $
+    error' "no stack.yaml present"
+  case vers of
+    [ver] ->
+      whenJustM (latestMajorSnapshot False ver) $ \latest ->
+      cmd_ "sed" ["-i", "-e", "s/\\(resolver:\\) .*/\\1 " ++ latest ++ "/", "stack.yaml"]
+    _ -> error' "only specify one major version for default resolver"
 
 makeStackLTS :: Bool -> [MajorVer] -> IO ()
 makeStackLTS refresh vers = do
