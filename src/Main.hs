@@ -141,12 +141,13 @@ run mcommand keepgoing debug refresh mnewest verlimit verscmd = do
 
 readStackConfigs :: IO [MajorVer]
 readStackConfigs = do
- sort . mapMaybe readStackConf <$> listDirectory "."
- where
-   readStackConf :: FilePath -> Maybe MajorVer
-   readStackConf "stack-lts.yaml" = error' "unversioned stack-lts.yaml is unsupported"
-   readStackConf f =
-     stripPrefix "stack-" f >>= stripSuffix ".yaml" >>= readCompactMajor
+  sort . mapMaybe readStackConf <$> listDirectory "."
+  where
+    readStackConf :: FilePath -> Maybe MajorVer
+    readStackConf "stack-lts.yaml" =
+      error' "unversioned stack-lts.yaml is unsupported"
+    readStackConf f =
+      stripPrefix "stack-" f >>= stripSuffix ".yaml" >>= readCompactMajor
 
 readNewestOldestLTS :: IO (MajorVer,MajorVer)
 readNewestOldestLTS = do
