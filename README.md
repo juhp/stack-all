@@ -9,16 +9,15 @@ I use this to do Haskell build CI for projects locally with stack.
 
 `stack-all` by default runs `stack build` over Stackage Nightly and
 LTS major versions
-(current default is nightly & major LTS versions back to lts-18)
+(the current default range is nightly & major LTS versions back to lts-18)
 corresponding to latest major ghc minor versions,
-with appropriate stack `--resolver` options.
+using appropriate stack `--resolver` options.
 
 Note that `stack` only works in a project if a `stack.yaml` file exists.
 If no `stack.yaml` file is found in a .cabal project,
-`stack-all` will create one,
-if there is a .cabal or "package.yaml" file.
-Of course it may still fail to build, but this allows for
-quick experiments to build a package that does not include stack support.
+`stack-all` will create one if there is a .cabal or "package.yaml" file.
+Of course it may still fail to build, but this allows for quick attempts
+to build a package that does not include a stack.yaml file.
 
 Since 0.6, stack-all also works outside projects, like stack itself does.
 
@@ -26,34 +25,35 @@ Since 0.6, stack-all also works outside projects, like stack itself does.
 `$ stack-all --version`
 
 ```
-0.6.2
+0.6.3
 ```
 `$ stack-all --help`
 
 ```
-Build over Stackage versions
+Build project over Stackage major versions
 
-Usage: stack-all [--version] 
-                 [(-c|--create-config) | (-d|--default-resolver) | 
-                   (-s|--make-lts)] [-k|--keep-going] [-D|--debug] 
-                 [--refresh-cache] [-n|--newest MAJOR] 
-                 [(-o|--oldest MAJOR) | (-a|--all-lts)] 
-                 [MAJORVER... [COMMAND...]]
+Usage: stack-all [--version] [-k|--keep-going] [-D|--debug] [--refresh-cache] 
+                 [-n|--newest MAJOR] [(-o|--oldest MAJOR) | (-a|--all-lts)] 
+                 [(-c|--create-config) | (-d|--default-resolver MAJOR) | 
+                   (-u|--update-resolver) | (-s|--make-lts MAJOR) | 
+                   [MAJORVER... COMMAND...]]
 
-  stack-all builds projects easily across different Stackage versions
+  https://github.com/juhp/stack-all#readme
 
 Available options:
   -h,--help                Show this help text
   --version                Show version
-  -c,--create-config       Create a project .stack-all file
-  -d,--default-resolver    Update stack.yaml resolver
-  -s,--make-lts            Create a stack-ltsXX.yaml file
   -k,--keep-going          Keep going even if an LTS fails
   -D,--debug               Verbose stack build output on error
   --refresh-cache          Force refresh of stackage snapshots.json cache
   -n,--newest MAJOR        Newest LTS release to build from
   -o,--oldest MAJOR        Oldest compatible LTS release
   -a,--all-lts             Try to build back to LTS 1 even
+  -c,--create-config       Create a project .stack-all file
+  -d,--default-resolver MAJOR
+                           Set stack.yaml resolver
+  -u,--update-resolver     Update stack.yaml resolver
+  -s,--make-lts MAJOR      Create a stack-ltsXX.yaml file
 ```
 
 ### Overriding stack.yaml
@@ -81,7 +81,7 @@ are not currently supported.)
 
 ### Specifying LTS versions
 You can abbreviate `lts-XX` args to `ltsXX` on the commandline.
-`lts` is also accepted and resolved to the latest major LTS version.
+`lts` is also accepted and resolves to the latest major LTS version.
 
 You can also use ghc major version aliases:
 eg `ghc9.6` corresponds to `lts22` or `ghc-9.2` to `lts-20`.
@@ -124,12 +124,16 @@ $ stack-all test --no-rerun-tests
 ```
 will run `stack test` over the LTS versions instead.
 
+
+Any stack command can be used, possibly outside a project,
+eg: `stack-all list aeson`
+
 Happy stack building!
 
 ## Install
 The project is released on Hackage.
 
-You can also build from git source with `stack install` or `cabal install`.
+You can also build from a git clone with `stack install` or `cabal install`.
 
 ## Collaboration
 The project is hosted at https://github.com/juhp/stack-all under a BSD license.

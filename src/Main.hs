@@ -35,8 +35,8 @@ data Command = CreateConfig
 main :: IO ()
 main = do
   hSetBuffering stdout NoBuffering
-  simpleCmdArgs' (Just version) "Build over Stackage versions"
-    "stack-all builds projects easily across different Stackage versions" $
+  simpleCmdArgs' (Just version) "Build project over Stackage major versions"
+    "https://github.com/juhp/stack-all#readme" $
     run
     <$> switchWith 'k' "keep-going" "Keep going even if an LTS fails"
     <*> switchWith 'D' "debug" "Verbose stack build output on error"

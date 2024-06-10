@@ -20,3 +20,5 @@
 - --half to skip every other major lts ?
 
 - short commands: b, i, t, etc
+
+- update stack-ltsXX.yaml resolver(s)
