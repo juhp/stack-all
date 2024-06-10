@@ -18,6 +18,7 @@ import qualified Data.Text.IO as T
 import MajorVer
 import Paths_stack_all (version)
 import Snapshots
+import StackYaml (readStackYaml)
 
 defaultOldestLTS :: MajorVer
 defaultOldestLTS = LTS 18
@@ -73,7 +74,12 @@ run mcommand keepgoing debug refresh mnewest verlimit verscmd = do
             Oldest oldest -> createStackAll (Just oldest) mnewest
             _ -> createStackAll Nothing mnewest
         DefaultResolver ->
-          stackDefaultResolver versions
+          stackDefaultResolver $
+          if null verscmd
+          then Nothing
+          else case versions of
+                 [ver] -> Just ver
+                 _ -> error' "only specify one version for default resolver"
         MakeStackLTS ->
           if null versions
             then error' "--make-lts needs an LTS major version"
@@ -184,15 +190,19 @@ createStackAll moldest mnewest = do
                 in maybe "" (\s -> showMajor s ++ " too old") molder
           in "# " ++ older ++ "\noldest = " ++ showMajor oldest ++ "\n"
 
-stackDefaultResolver :: [MajorVer] -> IO ()
-stackDefaultResolver vers = do
+stackDefaultResolver :: Maybe MajorVer -> IO ()
+stackDefaultResolver mver = do
   unlessM (doesFileExist stackYaml) $
     error' $ "no" +-+ stackYaml +-+ "present"
-  case vers of
-    [ver] ->
+  case mver of
+    Nothing -> do
+      mdef <- readStackYaml stackYaml
+      case mdef of
+        Nothing -> error' $ "could not determine major version of" +-+ stackYaml
+        Just ver -> stackDefaultResolver $ Just ver
+    Just ver ->
       whenJustM (latestMajorSnapshot False ver) $ \latest ->
       cmd_ "sed" ["-i", "-e", "s/\\(resolver:\\) .*/\\1 " ++ latest ++ "/", stackYaml]
-    _ -> error' "only specify one major version for default resolver"
 
 makeStackLTS :: Bool -> [MajorVer] -> IO ()
 makeStackLTS refresh vers = do
