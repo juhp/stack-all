@@ -81,9 +81,9 @@ run mcommand keepgoing debug refresh mnewest verlimit verscmd = do
                  [ver] -> Just ver
                  _ -> error' "only specify one version for default resolver"
         MakeStackLTS ->
-          if null versions
-            then error' "--make-lts needs an LTS major version"
-            else makeStackLTS refresh versions
+          if null verscmd
+          then error' "--make-lts needs an LTS major version"
+          else makeStackLTS refresh versions
     Nothing -> do
       configs <- readStackConfigs
       let newestFilter = maybe id (filter . (>=)) mnewest
