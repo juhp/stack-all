@@ -25,66 +25,49 @@ defaultOldestLTS = LTS 18
 
 data VersionLimit = DefaultLimit | Oldest MajorVer | AllVersions
 
-data CommandOpt = CreateConfig | DefaultResolver | MakeStackLTS
+data Command = CreateConfig
+             | SetDefaultResolver MajorVer
+             | UpdateDefaultResolver
+             | MakeStackLTS MajorVer
+             | RunCmd [String]
   deriving Eq
-
-showOpt :: CommandOpt -> String
-showOpt c =
-  "--" ++
-  case c of
-    CreateConfig -> "create-config"
-    DefaultResolver -> "default-resolver"
-    MakeStackLTS -> "make-lts"
 
 main :: IO ()
 main = do
   hSetBuffering stdout NoBuffering
   simpleCmdArgs' (Just version) "Build over Stackage versions"
     "stack-all builds projects easily across different Stackage versions" $
-    run <$>
-    optional
+    run
+    <$> switchWith 'k' "keep-going" "Keep going even if an LTS fails"
+    <*> switchWith 'D' "debug" "Verbose stack build output on error"
+    <*> switchLongWith "refresh-cache" "Force refresh of stackage snapshots.json cache"
+    <*> optional (readMajor <$> strOptionWith 'n' "newest" "MAJOR" "Newest LTS release to build from")
+    <*> (Oldest . readMajor <$> strOptionWith 'o' "oldest" "MAJOR" "Oldest compatible LTS release" <|>
+         flagWith DefaultLimit AllVersions 'a' "all-lts" "Try to build back to LTS 1 even")
+    <*>
     (flagWith' CreateConfig 'c' "create-config" "Create a project .stack-all file" <|>
-     flagWith' DefaultResolver 'd' "default-resolver" ("Update" +-+ stackYaml +-+ "resolver") <|>
-     flagWith' MakeStackLTS 's' "make-lts" "Create a stack-ltsXX.yaml file") <*>
-    switchWith 'k' "keep-going" "Keep going even if an LTS fails" <*>
-    switchWith 'D' "debug" "Verbose stack build output on error" <*>
-    switchLongWith "refresh-cache" "Force refresh of stackage snapshots.json cache" <*>
-    optional (readMajor <$> strOptionWith 'n' "newest" "MAJOR" "Newest LTS release to build from") <*>
-    (Oldest . readMajor <$> strOptionWith 'o' "oldest" "MAJOR" "Oldest compatible LTS release" <|>
-     flagWith DefaultLimit AllVersions 'a' "all-lts" "Try to build back to LTS 1 even") <*>
-    many (strArg "MAJORVER... [COMMAND...]")
+     (SetDefaultResolver . readMajor <$> strOptionWith 'd' "default-resolver" "MAJOR" ("Set" +-+ stackYaml +-+ "resolver")) <|>
+     flagWith' UpdateDefaultResolver 'u' "update-resolver" ("Update" +-+ stackYaml +-+ "resolver") <|>
+     (MakeStackLTS . readMajor <$> strOptionWith 's' "make-lts" "MAJOR" "Create a stack-ltsXX.yaml file") <|>
+     RunCmd <$> many (strArg "MAJORVER... COMMAND..."))
 
 stackYaml :: FilePath
 stackYaml = "stack.yaml"
 
-run :: Maybe CommandOpt -> Bool ->Bool -> Bool -> Maybe MajorVer
-    -> VersionLimit -> [String] -> IO ()
-run mcommand keepgoing debug refresh mnewest verlimit verscmd = do
+run :: Bool ->Bool -> Bool -> Maybe MajorVer -> VersionLimit -> Command
+    -> IO ()
+run keepgoing debug refresh mnewest verlimit com = do
   whenJustM findStackProjectDir setCurrentDirectory
-  (versions, cargs) <- getVersionsCmd
-  case mcommand of
-    Just command -> do
-      unless (null cargs) $
-        error' $ "cannot combine" +-+ showOpt command +-+ "with stack commands:" +-+ unwords cargs
-      case command of
-        CreateConfig -> do
-          unless (null versions) $
-            error' "cannot combine --create-config with major versions"
-          case verlimit of
-            Oldest oldest -> createStackAll (Just oldest) mnewest
-            _ -> createStackAll Nothing mnewest
-        DefaultResolver ->
-          stackDefaultResolver $
-          if null verscmd
-          then Nothing
-          else case versions of
-                 [ver] -> Just ver
-                 _ -> error' "only specify one version for default resolver"
-        MakeStackLTS ->
-          if null verscmd
-          then error' "--make-lts needs an LTS major version"
-          else makeStackLTS refresh versions
-    Nothing -> do
+  case com of
+    CreateConfig ->
+      case verlimit of
+        Oldest oldest -> createStackAll (Just oldest) mnewest
+        _ -> createStackAll Nothing mnewest
+    SetDefaultResolver ver -> stackDefaultResolver $ Just ver
+    UpdateDefaultResolver -> stackDefaultResolver Nothing
+    MakeStackLTS ver -> makeStackLTS refresh ver
+    RunCmd verscmd -> do
+      (versions, cargs) <- getVersionsCmd verscmd
       configs <- readStackConfigs
       let newestFilter = maybe id (filter . (>=)) mnewest
       mapM_ (runStack configs keepgoing debug refresh $ if null cargs then ["build"] else cargs) (newestFilter versions)
@@ -115,8 +98,8 @@ run mcommand keepgoing debug refresh mnewest verlimit verscmd = do
             putStrLn "no package/project found"
             return Nothing
 
-    getVersionsCmd :: IO ([MajorVer],[String])
-    getVersionsCmd = do
+    getVersionsCmd :: [String] -> IO ([MajorVer],[String])
+    getVersionsCmd verscmd = do
       let partitionMajors = swap . partitionEithers . map eitherReadMajorAlias
           (verlist,cmds) = partitionMajors verscmd
       allMajors <- getMajorVers
@@ -205,23 +188,22 @@ stackDefaultResolver mver = do
       whenJustM (latestMajorSnapshot False ver) $ \latest ->
       cmd_ "sed" ["-i", "-e", "s/\\(resolver:\\) .*/\\1 " ++ latest ++ "/", stackYaml]
 
-makeStackLTS :: Bool -> [MajorVer] -> IO ()
-makeStackLTS refresh vers = do
+makeStackLTS :: Bool -> MajorVer -> IO ()
+makeStackLTS refresh ver = do
   configs <- readStackConfigs
-  forM_ vers $ \ver -> do
-    let newfile = configFile ver
-    if ver `elem` configs
-      then do
-      error' $ newfile ++ " already exists!"
-      else do
-      let mcurrentconfig = find (ver <=) (delete Nightly configs)
-      case mcurrentconfig of
-        Nothing -> copyFile stackYaml newfile
-        Just conf -> do
-          let origfile = configFile conf
-          copyFile origfile newfile
-      whenJustM (latestMajorSnapshot refresh ver) $ \latest ->
-        cmd_ "sed" ["-i", "-e", "s/\\(resolver:\\) .*/\\1 " ++ latest ++ "/", newfile]
+  let newfile = configFile ver
+  if ver `elem` configs
+    then do
+    error' $ newfile ++ " already exists!"
+    else do
+    let mcurrentconfig = find (ver <=) (delete Nightly configs)
+    case mcurrentconfig of
+      Nothing -> copyFile stackYaml newfile
+      Just conf -> do
+        let origfile = configFile conf
+        copyFile origfile newfile
+    whenJustM (latestMajorSnapshot refresh ver) $ \latest ->
+      cmd_ "sed" ["-i", "-e", "s/\\(resolver:\\) .*/\\1 " ++ latest ++ "/", newfile]
 
 configFile :: MajorVer -> FilePath
 configFile ver = "stack-" ++ showCompact ver <.> "yaml"
