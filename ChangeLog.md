@@ -1,7 +1,7 @@
 # Release history for stack-all
 
 ## 0.6.3 (2024-06-10)
-- `--default-resolver` version is now optional for easy minor updating
+- `--update-resolver` to update default resolver to latest minor
 - command option args are now handled more precisely with an ADT
 
 ## 0.6.2 (2024-05-21)
