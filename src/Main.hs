@@ -75,28 +75,29 @@ run keepgoing debug refresh mnewest verlimit com = do
     findStackProjectDir :: IO (Maybe FilePath)
     findStackProjectDir = do
       haveStackYaml <- doesFileExist stackYaml
-      mcwdir <- Just <$> getCurrentDirectory
+      cwdir <- getCurrentDirectory
       if haveStackYaml
-        then return mcwdir
-        else
-        if mcwdir /= Just "/"
+        then return $ Just cwdir
+        else do
+        haveCabalPackageFile <-
+          doesFileExistWithExtension "." ".cabal" ||^
+          doesFileExist "package.yaml" ||^
+          doesFileExist "cabal.project"
+        if haveCabalPackageFile
+          then do
+          putStrLn $ "creating" +-+ stackYaml +-+ "in" +-+ cwdir
+          -- FIXME take suggested extra-deps into stack.yaml
+          -- FIXME stack init content too verbose
+          unlessM (cmdBool "stack" ["init"]) $ do
+            snap <- latestLtsSnapshot refresh
+            writeFile stackYaml $ "resolver: " ++ snap ++ "\n"
+          return $ Just cwdir
+          else
+          if cwdir /= "/"
           then withCurrentDirectory ".." findStackProjectDir
           else do
-          putStrLn $ stackYaml +-+ "not found"
-          haveCabalPackageFile <-
-            doesFileExistWithExtension "." ".cabal" ||^
-            doesFileExist "package.yaml"
-          if haveCabalPackageFile
-            then do
-            -- FIXME take suggested extra-deps into stack.yaml
-            -- FIXME stack init content too verbose
-            unlessM (cmdBool "stack" ["init"]) $ do
-              snap <- latestLtsSnapshot refresh
-              writeFile stackYaml $ "resolver: " ++ snap ++ "\n"
-            return mcwdir
-            else do
-            putStrLn "no package/project found"
-            return Nothing
+          putStrLn "no package/project found"
+          return Nothing
 
     getVersionsCmd :: [String] -> IO ([MajorVer],[String])
     getVersionsCmd verscmd = do
