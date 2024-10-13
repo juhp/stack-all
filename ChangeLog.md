@@ -1,5 +1,9 @@
 # Release history for stack-all
 
+## 0.6.4 (2024-10-13)
+- Fix the missing stack.yaml logic to first check for a .cabal file before
+  trying parent directory
+
 ## 0.6.3 (2024-06-10)
 - `--update-resolver` to update default resolver to latest minor
 - command option args are now handled more precisely with an ADT

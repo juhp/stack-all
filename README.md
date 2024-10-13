@@ -25,7 +25,7 @@ Since 0.6, stack-all also works outside projects, like stack itself does.
 `$ stack-all --version`
 
 ```
-0.6.3
+0.6.4
 ```
 `$ stack-all --help`
 
