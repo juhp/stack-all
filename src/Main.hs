@@ -28,7 +28,7 @@ data VersionLimit = DefaultLimit | Oldest MajorVer | AllVersions
 data Command = CreateConfig
              | SetDefaultResolver MajorVer
              | UpdateDefaultResolver
-             | MakeStackLTS MajorVer
+             | MakeStackLTS (Maybe MajorVer)
              | RunCmd [String]
   deriving Eq
 
@@ -48,7 +48,8 @@ main = do
     (flagWith' CreateConfig 'c' "create-config" "Create a project .stack-all file" <|>
      (SetDefaultResolver . readMajor <$> strOptionWith 'd' "default-resolver" "MAJOR" ("Set" +-+ stackYaml +-+ "resolver")) <|>
      flagWith' UpdateDefaultResolver 'u' "update-resolver" ("Update" +-+ stackYaml +-+ "resolver") <|>
-     (MakeStackLTS . readMajor <$> strOptionWith 's' "make-lts" "MAJOR" "Create a stack-ltsXX.yaml file") <|>
+     (MakeStackLTS . Just . readMajor <$> strOptionWith 's' "make-lts" "MAJOR" "Create a stack-ltsXX.yaml file") <|>
+     flagWith' (MakeStackLTS Nothing) 'S' "make-all-lts" "Create all stack-ltsXX.yaml files" <|>
      RunCmd <$> many (strArg "MAJORVER... COMMAND..."))
 
 stackYaml :: FilePath
@@ -65,7 +66,14 @@ run keepgoing debug refresh mnewest verlimit com = do
         _ -> createStackAll Nothing mnewest
     SetDefaultResolver ver -> stackDefaultResolver $ Just ver
     UpdateDefaultResolver -> stackDefaultResolver Nothing
-    MakeStackLTS ver -> makeStackLTS refresh ver
+    MakeStackLTS mver ->
+      case mver of
+        Nothing -> do
+          (newest, oldest) <- readNewestOldestLTS
+          versions <- filter (\m -> m >= oldest && m <= newest) <$> getMajorVers
+          mapM_ (makeStackLTS keepgoing refresh) versions
+        Just ver -> do
+          makeStackLTS False refresh ver
     RunCmd verscmd -> do
       (versions, cargs) <- getVersionsCmd verscmd
       configs <- readStackConfigs
@@ -189,13 +197,15 @@ stackDefaultResolver mver = do
       whenJustM (latestMajorSnapshot False ver) $ \latest ->
       cmd_ "sed" ["-i", "-e", "s/\\(resolver:\\) .*/\\1 " ++ latest ++ "/", stackYaml]
 
-makeStackLTS :: Bool -> MajorVer -> IO ()
-makeStackLTS refresh ver = do
+makeStackLTS :: Bool -> Bool -> MajorVer -> IO ()
+makeStackLTS keepgoing refresh ver = do
   configs <- readStackConfigs
   let newfile = configFile ver
   if ver `elem` configs
     then do
-    error' $ newfile ++ " already exists!"
+      if keepgoing
+        then putStrLn $ "skipping " ++ newfile ++ " (file exists)"
+        else error' $ newfile ++ " already exists!"
     else do
     let mcurrentconfig = find (ver <=) (delete Nightly configs)
     case mcurrentconfig of
