@@ -54,6 +54,7 @@ Available options:
                            Set stack.yaml resolver
   -u,--update-resolver     Update stack.yaml resolver
   -s,--make-lts MAJOR      Create a stack-ltsXX.yaml file
+  -S,--make-all-lts        Create all stack-ltsXX.yaml files
 ```
 
 ### Overriding stack.yaml
