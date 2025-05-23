@@ -48,7 +48,7 @@ main = do
          flagWith DefaultLimit AllVersions 'a' "all-lts" "Try to build back to LTS 1 even")
     <*>
     (flagWith' CreateConfig 'c' "create-config" "Create a project .stack-all file" <|>
-     (SetDefaultResolver . readMajor <$> strOptionWith 'd' "default-resolver" "MAJOR" ("Set" +-+ stackYaml +-+ "resolver")) <|>
+     (SetDefaultResolver . readMajor <$> strOptionWith 'r' "default-resolver" "MAJOR" ("Set" +-+ stackYaml +-+ "resolver")) <|>
      flagWith' UpdateDefaultResolver 'u' "update-resolver" ("Update" +-+ stackYaml +-+ "resolver") <|>
      (MakeStackLTS . readMajor <$> strOptionWith 's' "make-lts" "MAJOR" "Create a stack-ltsXX.yaml file") <|>
      flagWith' MakeAllLTS 'S' "make-all-lts" "Create all stack-ltsXX.yaml files" <|>
