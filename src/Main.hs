@@ -183,6 +183,10 @@ createStackAll moldest mnewest = do
                 in maybe "" (\s -> showMajor s ++ " too old") molder
           in "# " ++ older ++ "\noldest = " ++ showMajor oldest ++ "\n"
 
+updateResolver :: String -> FilePath -> IO ()
+updateResolver snapshot stackfile =
+  cmd_ "sed" ["-i", "-e", "s/\\(resolver:\\|snapshot:\\) .*/\\1 " ++ snapshot ++ "/", stackfile]
+
 stackDefaultResolver :: Maybe MajorVer -> IO ()
 stackDefaultResolver mver = do
   unlessM (doesFileExist stackYaml) $
@@ -195,7 +199,7 @@ stackDefaultResolver mver = do
         Just ver -> stackDefaultResolver $ Just ver
     Just ver ->
       whenJustM (latestMajorSnapshot False ver) $ \latest ->
-      cmd_ "sed" ["-i", "-e", "s/\\(resolver:\\) .*/\\1 " ++ latest ++ "/", stackYaml]
+      updateResolver latest stackYaml
 
 makeStackLTS :: Bool -> Bool -> MajorVer -> IO ()
 makeStackLTS keepgoing refresh ver = do
@@ -214,7 +218,7 @@ makeStackLTS keepgoing refresh ver = do
         let origfile = configFile conf
         copyFile origfile newfile
     whenJustM (latestMajorSnapshot refresh ver) $ \latest ->
-      cmd_ "sed" ["-i", "-e", "s/\\(resolver:\\) .*/\\1 " ++ latest ++ "/", newfile]
+      updateResolver latest newfile
 
 configFile :: MajorVer -> FilePath
 configFile ver = "stack-" ++ showCompact ver <.> "yaml"
