@@ -1,5 +1,10 @@
 # Release history for stack-all
 
+## 0.6.5 (2025-05-23)
+- support "snapshot:" as well as "resolver:"
+- add -S,--make-all-lts flag (pbrisbin,#4)
+- add 9.8 alias for lts23
+
 ## 0.6.4 (2024-10-13)
 - Fix the missing stack.yaml logic to first check for a .cabal file before
   trying parent directory
