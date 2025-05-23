@@ -29,7 +29,8 @@ data VersionLimit = DefaultLimit | Oldest MajorVer | AllVersions
 data Command = CreateConfig
              | SetDefaultResolver MajorVer
              | UpdateDefaultResolver
-             | MakeStackLTS (Maybe MajorVer)
+             | MakeStackLTS MajorVer
+             | MakeAllLTS
              | RunCmd [String]
   deriving Eq
 
@@ -49,8 +50,8 @@ main = do
     (flagWith' CreateConfig 'c' "create-config" "Create a project .stack-all file" <|>
      (SetDefaultResolver . readMajor <$> strOptionWith 'd' "default-resolver" "MAJOR" ("Set" +-+ stackYaml +-+ "resolver")) <|>
      flagWith' UpdateDefaultResolver 'u' "update-resolver" ("Update" +-+ stackYaml +-+ "resolver") <|>
-     (MakeStackLTS . Just . readMajor <$> strOptionWith 's' "make-lts" "MAJOR" "Create a stack-ltsXX.yaml file") <|>
-     flagWith' (MakeStackLTS Nothing) 'S' "make-all-lts" "Create all stack-ltsXX.yaml files" <|>
+     (MakeStackLTS . readMajor <$> strOptionWith 's' "make-lts" "MAJOR" "Create a stack-ltsXX.yaml file") <|>
+     flagWith' MakeAllLTS 'S' "make-all-lts" "Create all stack-ltsXX.yaml files" <|>
      RunCmd <$> many (strArg "MAJORVER... COMMAND..."))
 
 stackYaml :: FilePath
@@ -67,14 +68,10 @@ run keepgoing debug refresh mnewest verlimit com = do
         _ -> createStackAll Nothing mnewest
     SetDefaultResolver ver -> stackDefaultResolver $ Just ver
     UpdateDefaultResolver -> stackDefaultResolver Nothing
-    MakeStackLTS mver ->
-      case mver of
-        Nothing -> do
-          (newest, oldest) <- readNewestOldestLTS
-          versions <- filter (\m -> m >= oldest && m <= newest) <$> getMajorVers
-          mapM_ (makeStackLTS keepgoing refresh) versions
-        Just ver -> do
-          makeStackLTS False refresh ver
+    MakeStackLTS ver -> makeStackLTS False refresh ver
+    MakeAllLTS ->
+      determineVersions True mnewest verlimit [] >>=
+      mapM_ (makeStackLTS keepgoing refresh)
     RunCmd verscmd -> do
       (versions, cargs) <- getVersionsCmd verscmd
       configs <- readStackConfigs
@@ -112,25 +109,32 @@ run keepgoing debug refresh mnewest verlimit com = do
     getVersionsCmd verscmd = do
       let partitionMajors = swap . partitionEithers . map eitherReadMajorAlias
           (verlist,cmds) = partitionMajors verscmd
-      allMajors <- getMajorVers
-      versions <-
-        if null verlist then
+      versions <- determineVersions False mnewest verlimit verlist
+      return (versions,cmds)
+
+inRange :: MajorVer -> MajorVer -> MajorVer -> Bool
+inRange newest oldest v = v >= oldest && v <= newest
+
+determineVersions :: Bool -> Maybe MajorVer -> VersionLimit -> [MajorVerAlias]
+                  -> IO [MajorVer]
+determineVersions nonightly mnewest verlimit verlist = do
+        if null verlist then do
+          allMajors <- getMajorVers
           case verlimit of
             DefaultLimit -> do
-              (newestLTS, oldestLTS) <- readNewestOldestLTS
-              return $ case mnewest of
-                         Just newest ->
-                           if newest < oldestLTS
-                           then filter (inRange newest (LTS 1)) allMajors
-                           else filter (inRange newest oldestLTS) allMajors
-                         Nothing -> filter (inRange newestLTS oldestLTS) allMajors
+              (newestLTS, oldestLTS) <- readNewestOldestLTS (mnewest <|> if nonightly then Just LTSLatest else Nothing)
+              return $
+                case mnewest of
+                  Just newest ->
+                    if newest < oldestLTS
+                    then filter (inRange newest (LTS 1)) allMajors
+                    else filter (inRange newest oldestLTS) allMajors
+                  Nothing -> filter (inRange newestLTS oldestLTS) allMajors
             AllVersions -> return allMajors
-            Oldest ver -> return $ filter (inRange Nightly ver) allMajors
+            Oldest ver ->
+              return $
+              filter (inRange (fromMaybe Nightly mnewest) ver) allMajors
         else nub <$> mapM resolveMajor verlist
-      return (versions,cmds)
-      where
-        inRange :: MajorVer -> MajorVer -> MajorVer -> Bool
-        inRange newest oldest v = v >= oldest && v <= newest
 
 readStackConfigs :: IO [MajorVer]
 readStackConfigs = do
@@ -142,15 +146,18 @@ readStackConfigs = do
     readStackConf f =
       stripPrefix "stack-" f >>= stripSuffix ".yaml" >>= readCompactMajor
 
-readNewestOldestLTS :: IO (MajorVer,MajorVer)
-readNewestOldestLTS = do
+readNewestOldestLTS :: Maybe MajorVer -> IO (MajorVer,MajorVer)
+readNewestOldestLTS mnewest = do
   haveConfig <- doesFileExist stackAllFile
   if haveConfig then
     readIniConfig stackAllFile $
     section "versions" $ do
-    mnewest <- fmap readMajor <$> fieldMbOf "newest" string
-    moldest <- fmap readMajor <$> fieldMbOf "oldest" string
-    return (fromMaybe Nightly mnewest, fromMaybe defaultOldestLTS moldest)
+    mnewest' <-
+      case mnewest of
+        Nothing -> fmap readMajor <$> fieldMbOf "newest" string
+        _ -> return mnewest
+    moldest' <- fmap readMajor <$> fieldMbOf "oldest" string
+    return (fromMaybe Nightly mnewest', fromMaybe defaultOldestLTS moldest')
     else return (Nightly, defaultOldestLTS)
   where
     readIniConfig :: FilePath -> IniParser a -> IO a
