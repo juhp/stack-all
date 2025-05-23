@@ -10,16 +10,25 @@ module MajorVer (
   )
 where
 
+import Data.Char (isDigit)
 import Data.List.Extra
+import Numeric.Natural (Natural)
 import SimpleCmd (error')
 import Text.Read (readMaybe)
 
 -- FIXME allow specific snapshots?
-data MajorVer = LTS Int | LTSLatest | Nightly
+data MajorVer = LTS Natural | LTSLatest | Nightly
   deriving (Eq, Ord)
 
 maybeReadMajor :: String -> Maybe MajorVer
-maybeReadMajor "nightly" = Just Nightly
+maybeReadMajor ver
+  | "nightly" `isPrefixOf` ver =
+      case dropPrefix "-" $ dropPrefix "nightly" ver of
+        "" -> Just Nightly
+        ds ->
+          if all (\d -> isDigit d || d == '-') ds
+          then Just Nightly
+          else Nothing
 maybeReadMajor ver
   | "lts" `isPrefixOf` ver =
       case readMaybe (dropPrefix "-" (dropPrefix "lts" ver)) of
@@ -51,7 +60,7 @@ readMajor ver =
   case maybeReadMajor ver of
     Just s -> s
     Nothing ->
-      error' $! "couldn't parse " ++ ver ++ " (expected lts-XX, ltsXX, ghc-X.Y or ghcX.Y)"
+      error' $! "couldn't parse " ++ ver ++ " (expected lts*, nightly*, ghc-X.Y or ghcX.Y)"
 
 -- readCompactMajor "lts16"
 -- Should we support "stack-lts.yaml"?
