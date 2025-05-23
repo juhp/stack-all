@@ -90,8 +90,8 @@ eg `ghc9.6` corresponds to `lts22` or `ghc-9.2` to `lts-20`.
 There are `--oldest`  and `--newest` options to specify the range of
 lts versions to build over:
 
-You can specify the oldest major LTS to build for with eg `stack-all -o lts16`.
-Otherwise if not configured the default oldest LTS is currently `lts-18`.
+You can specify the oldest major LTS to build for with eg `stack-all -o lts18`.
+Otherwise if not configured the default oldest LTS is currently `lts-20`.
 
 Similarly you can specify the newest LTS version to build from with
 eg `stack-all -n lts20`. (The default is to build from nightly.)
@@ -101,15 +101,15 @@ for as arguments: eg `stack-all lts19` if you only wish to build that version.
 
 ### Configuring the oldest and/or newest LTS to build
 You can configure the oldest working LTS major version for your project
-by running for example `stack-all -c -o lts-19` which generates a `.stack-all`
+by running for example `stack-all -c -o lts-21` which generates a `.stack-all`
 project config file like this:
 ```
 [versions]
-# lts-18 too old
-oldest = lts-19
+# lts-20 too old
+oldest = lts-21
 ```
 (the comment line can be used to document why the older LTS doesn't work).
-This specifies that the oldest LTS version to build for is lts-19.
+This specifies that the oldest LTS version to build for is lts-21.
 
 The newest LTS to build with stack-all can similarly be configured:
 `stack-all -c -n lts21` or setting `newest = lts-21`.

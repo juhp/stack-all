@@ -22,7 +22,7 @@ import Snapshots
 import StackYaml (readStackYaml)
 
 defaultOldestLTS :: MajorVer
-defaultOldestLTS = LTS 18
+defaultOldestLTS = LTS 20
 
 data VersionLimit = DefaultLimit | Oldest MajorVer | AllVersions
 
