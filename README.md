@@ -25,18 +25,18 @@ Since 0.6, stack-all also works outside projects, like stack itself does.
 `$ stack-all --version`
 
 ```
-0.6.4
+0.7
 ```
 `$ stack-all --help`
 
 ```
 Build project over Stackage major versions
 
-Usage: stack-all [--version] [-k|--keep-going] [-D|--debug] [--refresh-cache] 
-                 [-n|--newest MAJOR] [(-o|--oldest MAJOR) | (-a|--all-lts)] 
-                 [(-c|--create-config) | (-d|--default-resolver MAJOR) | 
-                   (-u|--update-resolver) | (-s|--make-lts MAJOR) | 
-                   [MAJORVER... COMMAND...]]
+Usage: stack-all [--version] [-k|--keep-going] [-D|--debug] [--refresh-cache]
+                 [-n|--newest MAJOR] [(-o|--oldest MAJOR) | (-a|--all-lts)]
+                 [(-c|--create-config) | (-r|--default-resolver MAJOR) |
+                   (-u|--update-resolver) | (-s|--make-lts MAJOR) |
+                   (-S|--make-all-lts) | [MAJORVER... COMMAND...]]
 
   https://github.com/juhp/stack-all#readme
 
@@ -50,7 +50,7 @@ Available options:
   -o,--oldest MAJOR        Oldest compatible LTS release
   -a,--all-lts             Try to build back to LTS 1 even
   -c,--create-config       Create a project .stack-all file
-  -d,--default-resolver MAJOR
+  -r,--default-resolver MAJOR
                            Set stack.yaml resolver
   -u,--update-resolver     Update stack.yaml resolver
   -s,--make-lts MAJOR      Create a stack-ltsXX.yaml file
@@ -64,11 +64,11 @@ Note that a `stack-ltsXX.yaml` file will also be used for
 older LTS major versions until another `stack-ltsYY.yaml` file is found.
 `stack-nightly.yaml` is also supported, but used only for nightly.
 
-For example if you have `stack-lts20.yaml` and `stack-lts18.yaml` files
+For example if you have `stack-lts22.yaml` and `stack-lts20.yaml` files
 in your project,
-then `stack.yaml` will be used as normal to build nightly, lts-22 and lts-21,
-but `stack-lts20.yaml` will be used for building lts-20 and lts-19,
-and `stack-lts18.yaml` will be used for lts-18, lts-16 (and older).
+then `stack.yaml` will be used as normal to build nightly and lts-23,
+but `stack-lts22.yaml` will be used for building lts-22 and lts-21,
+and `stack-lts20.yaml` will be used for lts-20 (and older).
 Since `stack-all` overrides the exact resolver with the latest minor snapshot,
 the exact minor Stackage version specified in the `stack*.yaml` files
 doesn't actually matter: `stack-all` always uses the latest published
@@ -80,12 +80,16 @@ minor releases of Stackage major versions.
 (Other versioned stack.yaml filenames like stack-ghc-8.8.yaml
 are not currently supported.)
 
+If you wish you can create `stack-ltsXX.yaml` for all lts versions using
+`--make-all-lts` (`-S`).
+
 ### Specifying LTS versions
 You can abbreviate `lts-XX` args to `ltsXX` on the commandline.
 `lts` is also accepted and resolves to the latest major LTS version.
 
 You can also use ghc major version aliases:
-eg `ghc9.6` corresponds to `lts22` or `ghc-9.2` to `lts-20`.
+eg `ghc9.8` corresponds to `lts23` or `ghc-9.2` to `lts-20`,
+though not for nightly currently.
 
 There are `--oldest`  and `--newest` options to specify the range of
 lts versions to build over:
@@ -97,7 +101,7 @@ Similarly you can specify the newest LTS version to build from with
 eg `stack-all -n lts20`. (The default is to build from nightly.)
 
 Alternatively, one can give one or more explicit LTS major versions to build
-for as arguments: eg `stack-all lts19` if you only wish to build that version.
+for as arguments: eg `stack-all lts21` if you only wish to build that version.
 
 ### Configuring the oldest and/or newest LTS to build
 You can configure the oldest working LTS major version for your project
@@ -112,7 +116,7 @@ oldest = lts-21
 This specifies that the oldest LTS version to build for is lts-21.
 
 The newest LTS to build with stack-all can similarly be configured:
-`stack-all -c -n lts21` or setting `newest = lts-21`.
+`stack-all -c -n lts22` or setting `newest = lts-22`.
 
 ### Running other stack commands
 By default `stack-all` just runs the stack `build` command over

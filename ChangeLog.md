@@ -1,10 +1,13 @@
 # Release history for stack-all
 
-## 0.6.5 (2025-05-23)
+## 0.7 (2025-05-23)
 - support "snapshot:" as well as "resolver:"
 - add -S,--make-all-lts flag (pbrisbin,#4)
+- bump default oldest major version from LTS 18 to 20
 - error for lts11 with stack > 3
-- add 9.8 alias for lts23
+- fix --update-resolver for nightly snapshot
+- change --default-resolver short option from -d to -r
+- add ghc9.8 alias for lts23
 
 ## 0.6.4 (2024-10-13)
 - Fix the missing stack.yaml logic to first check for a .cabal file before
