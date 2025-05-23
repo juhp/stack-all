@@ -6,6 +6,7 @@ import Data.Ini.Config
 import Data.List.Extra
 import Data.Maybe
 import Data.Tuple (swap)
+import Data.Version.Extra
 import SimpleCmd
 import SimpleCmdArgs
 import System.Directory
@@ -226,6 +227,11 @@ configFile ver = "stack-" ++ showCompact ver <.> "yaml"
 runStack :: [MajorVer] -> Bool -> Bool -> Bool -> [String]
            -> MajorVer -> IO ()
 runStack configs keepgoing debug refresh command ver = do
+  -- FIXME support --stack or STACK envvar or stack-<VERSION>
+  when (ver <= LTS 11) $ do
+    stackver <- readVersion <$> cmd "stack" ["--numeric-version"]
+    when (stackver >= makeVersion [3]) $
+      error' $ "stack-" ++ showVersion stackver +-+ "no longer supports lts < 12"
   let mcfgver =
         case ver of
           Nightly | Nightly `elem` configs -> Just Nightly

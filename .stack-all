@@ -1,4 +1,5 @@
 [versions]
 # lts9 optparse-applicative-0.13.2.0 < 0.14.1
 # lts10 http-query: requestFromURI_
-oldest = lts-11
+# lts11 no longer supported from stack-3.1
+oldest = lts-12
