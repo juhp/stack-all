@@ -63,7 +63,7 @@ readMajor ver =
       error' $! "couldn't parse " ++ ver ++ " (expected lts*, nightly*, ghc-X.Y or ghcX.Y)"
 
 -- readCompactMajor "lts16"
--- Should we support "stack-lts.yaml"?
+-- Should we support stack-lts.yaml or even stack-<minor>.yaml?
 readCompactMajor :: String -> Maybe MajorVer
 readCompactMajor "nightly" = Just Nightly
 readCompactMajor ver =

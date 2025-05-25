@@ -1,5 +1,7 @@
 - use --ghc-options -fhide-source-paths for ghc-8.2+
 
+- --dryrun
+
 - use pantry to determine ghc-version of lts version
 - set minimal lts by setup ghc version
 - choose lts's by latest ghc minor versions

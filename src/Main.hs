@@ -1,17 +1,31 @@
-{-# LANGUAGE OverloadedStrings, CPP #-}
+{-# LANGUAGE BangPatterns, OverloadedStrings, CPP #-}
 
-import Control.Monad.Extra
+import Control.Monad.Extra (unless, unlessM, when, whenJustM, (||^))
 import Data.Either
 import Data.Ini.Config
-import Data.List.Extra
-import Data.Maybe
+import Data.List (delete, find, nub, sort)
+import Data.Maybe (fromMaybe, listToMaybe)
 import Data.Tuple (swap)
 import Data.Version.Extra
-import SimpleCmd
+import SimpleCmd ((+-+), cmdBool, cmd, cmd_, error',
+#if MIN_VERSION_simple_cmd(0,2,4)
+                  fileWithExtension
+#endif
+                 )
 import SimpleCmdArgs
-import System.Directory
+import System.Directory (copyFile, doesFileExist, getCurrentDirectory,
+#if !MIN_VERSION_simple_cmd(0,2,4)
+                         listDirectory,
+#endif
+                         setCurrentDirectory, withCurrentDirectory)
 import System.Exit
-import System.FilePath
+#if !MIN_VERSION_simple_cmd(0,2,4)
+import System.FilePath (
+#if MIN_VERSION_filepath(1,4,2)
+  isExtensionOf,
+#endif
+  (</>))
+#endif
 import System.IO
 import System.Process
 import qualified Data.Text.IO as T
@@ -19,7 +33,7 @@ import qualified Data.Text.IO as T
 import MajorVer
 import Paths_stack_all (version)
 import Snapshots
-import StackYaml (readStackYaml)
+import StackYaml
 
 defaultOldestLTS :: MajorVer
 defaultOldestLTS = LTS 20
@@ -54,9 +68,6 @@ main = do
      flagWith' MakeAllLTS 'S' "make-all-lts" "Create all stack-ltsXX.yaml files" <|>
      RunCmd <$> many (strArg "MAJORVER... COMMAND..."))
 
-stackYaml :: FilePath
-stackYaml = "stack.yaml"
-
 run :: Bool ->Bool -> Bool -> Maybe MajorVer -> VersionLimit -> Command
     -> IO ()
 run keepgoing debug refresh mnewest verlimit com = do
@@ -69,14 +80,14 @@ run keepgoing debug refresh mnewest verlimit com = do
     SetDefaultResolver ver -> stackDefaultResolver $ Just ver
     UpdateDefaultResolver -> stackDefaultResolver Nothing
     MakeStackLTS ver -> makeStackLTS False refresh ver
-    MakeAllLTS ->
-      determineVersions True mnewest verlimit [] >>=
-      mapM_ (makeStackLTS keepgoing refresh)
+    MakeAllLTS -> do
+      vers <- determineVersions mnewest verlimit []
+      mapM_ (makeStackLTS (length vers > 1) refresh) vers
     RunCmd verscmd -> do
       (versions, cargs) <- getVersionsCmd verscmd
       configs <- readStackConfigs
-      let newestFilter = maybe id (filter . (>=)) mnewest
-      mapM_ (runStack configs keepgoing debug refresh $ if null cargs then ["build"] else cargs) (newestFilter versions)
+      let finalvers = maybe id (filter . (>=)) mnewest versions
+      mapM_ (runStack configs keepgoing debug refresh $ if null cargs then ["build"] else cargs) finalvers
   where
     findStackProjectDir :: IO (Maybe FilePath)
     findStackProjectDir = do
@@ -109,20 +120,20 @@ run keepgoing debug refresh mnewest verlimit com = do
     getVersionsCmd verscmd = do
       let partitionMajors = swap . partitionEithers . map eitherReadMajorAlias
           (verlist,cmds) = partitionMajors verscmd
-      versions <- determineVersions False mnewest verlimit verlist
+      versions <- determineVersions mnewest verlimit verlist
       return (versions,cmds)
 
 inRange :: MajorVer -> MajorVer -> MajorVer -> Bool
 inRange newest oldest v = v >= oldest && v <= newest
 
-determineVersions :: Bool -> Maybe MajorVer -> VersionLimit -> [MajorVerAlias]
+determineVersions :: Maybe MajorVer -> VersionLimit -> [MajorVerAlias]
                   -> IO [MajorVer]
-determineVersions nonightly mnewest verlimit verlist = do
+determineVersions mnewest verlimit verlist = do
         if null verlist then do
           allMajors <- getMajorVers
           case verlimit of
             DefaultLimit -> do
-              (newestLTS, oldestLTS) <- readNewestOldestLTS (mnewest <|> if nonightly then Just LTSLatest else Nothing)
+              (newestLTS, oldestLTS) <- readNewestOldestLTS mnewest
               return $
                 case mnewest of
                   Just newest ->
@@ -136,16 +147,6 @@ determineVersions nonightly mnewest verlimit verlist = do
               filter (inRange (fromMaybe Nightly mnewest) ver) allMajors
         else nub <$> mapM resolveMajor verlist
 
-readStackConfigs :: IO [MajorVer]
-readStackConfigs = do
-  sort . mapMaybe readStackConf <$> listDirectory "."
-  where
-    readStackConf :: FilePath -> Maybe MajorVer
-    readStackConf "stack-lts.yaml" =
-      error' "unversioned stack-lts.yaml is unsupported"
-    readStackConf f =
-      stripPrefix "stack-" f >>= stripSuffix ".yaml" >>= readCompactMajor
-
 readNewestOldestLTS :: Maybe MajorVer -> IO (MajorVer,MajorVer)
 readNewestOldestLTS mnewest = do
   haveConfig <- doesFileExist stackAllFile
@@ -158,7 +159,7 @@ readNewestOldestLTS mnewest = do
         _ -> return mnewest
     moldest' <- fmap readMajor <$> fieldMbOf "oldest" string
     return (fromMaybe Nightly mnewest', fromMaybe defaultOldestLTS moldest')
-    else return (Nightly, defaultOldestLTS)
+    else return (fromMaybe Nightly mnewest, defaultOldestLTS)
   where
     readIniConfig :: FilePath -> IniParser a -> IO a
     readIniConfig inifile iniparser = do
@@ -201,7 +202,7 @@ stackDefaultResolver mver = do
     error' $ "no" +-+ stackYaml +-+ "present"
   case mver of
     Nothing -> do
-      mdef <- readStackYaml stackYaml
+      mdef <- readDefaultStackYaml
       case mdef of
         Nothing -> error' $ "could not determine major version of" +-+ stackYaml
         Just ver -> stackDefaultResolver $ Just ver
@@ -210,48 +211,56 @@ stackDefaultResolver mver = do
       updateResolver latest stackYaml
 
 makeStackLTS :: Bool -> Bool -> MajorVer -> IO ()
-makeStackLTS keepgoing refresh ver = do
+makeStackLTS multiple refresh ver = do
   configs <- readStackConfigs
-  let newfile = configFile ver
-  if ver `elem` configs
-    then do
-      if keepgoing
-        then putStrLn $ "skipping " ++ newfile ++ " (file exists)"
-        else error' $ newfile ++ " already exists!"
-    else do
-    let mcurrentconfig = find (ver <=) (delete Nightly configs)
-    case mcurrentconfig of
-      Nothing -> copyFile stackYaml newfile
-      Just conf -> do
-        let origfile = configFile conf
-        copyFile origfile newfile
-    whenJustM (latestMajorSnapshot refresh ver) $ \latest ->
-      updateResolver latest newfile
+  case filter (isVersion ver) configs of
+    [] -> do
+      let newfile = configFile $ Config ver
+          mcurrentconfig = find ((ver <) . configVersion) configs
+      when multiple $ putStrLn $ "creating" +-+ newfile
+      case mcurrentconfig of
+        Nothing -> copyFile stackYaml newfile
+        Just conf -> do
+          let origfile = configFile conf
+          copyFile origfile newfile
+      whenJustM (latestMajorSnapshot refresh ver) $ \latest ->
+        updateResolver latest newfile
+    [c] ->
+      let msg =
+            configFile c +-+ "already" +-+
+            case c of
+              Config _ -> "exists"
+              ConfigDefault v -> "has" +-+ showMajor v
+      in if multiple
+         then putStrLn msg
+         else error' $ msg ++ "!"
+    cs ->
+      (if multiple then putStrLn else error') $ "overlapping major versions:" +-+
+      unwords (map configFile cs)
 
-configFile :: MajorVer -> FilePath
-configFile ver = "stack-" ++ showCompact ver <.> "yaml"
-
-runStack :: [MajorVer] -> Bool -> Bool -> Bool -> [String]
-           -> MajorVer -> IO ()
+runStack :: [ConfigVersion] -> Bool -> Bool -> Bool -> [String] -> MajorVer
+         -> IO ()
 runStack configs keepgoing debug refresh command ver = do
-  -- FIXME support --stack or STACK envvar or stack-<VERSION>
+  -- FIXME add --stack or STACK envvar or look for stack-<VERSION>
   when (ver <= LTS 11) $ do
     stackver <- readVersion <$> cmd "stack" ["--numeric-version"]
     when (stackver >= makeVersion [3]) $
       error' $ "stack-" ++ showVersion stackver +-+ "no longer supports lts < 12"
-  let mcfgver =
-        case ver of
-          Nightly | Nightly `elem` configs -> Just Nightly
-          _ ->
-            case sort (filter (ver <=) (delete Nightly configs)) of
+  let !mconfig =
+        case filter (isVersion ver) configs of
+          [] ->
+            case sort (filter (Config ver <) $ delete (Config Nightly) configs) of
               [] -> Nothing
-              (cfg:_) -> Just cfg
+              (c:_) -> nonDefaultConfig c
+          [c] -> nonDefaultConfig c
+          cs -> error' $ "overlapping major versions:" +-+
+                unwords (map configFile cs)
   latest <- latestMajorSnapshot refresh ver
   case latest of
     Nothing -> error' $ "no snapshot not found for " ++ showMajor ver
     Just minor -> do
       let opts = ["-v" | debug] ++ ["--resolver", minor] ++
-                 maybe [] (\f -> ["--stack-yaml", configFile f]) mcfgver
+                 maybe [] (\f -> ["--stack-yaml", configFile f]) mconfig
       putStrLn $ "# " ++ minor
       if debug
         then debugBuild $ opts ++ command

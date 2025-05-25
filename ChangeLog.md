@@ -1,6 +1,7 @@
 # Release history for stack-all
 
-## 0.7 (2025-05-23)
+## 0.7 (2025-05-25)
+- complete rework of stack*.yaml config file logic
 - support "snapshot:" as well as "resolver:"
 - add -S,--make-all-lts flag (pbrisbin,#4)
 - bump default oldest major version from LTS 18 to 20
