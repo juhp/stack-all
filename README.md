@@ -8,8 +8,7 @@ I use this to do Haskell build CI for projects locally with stack.
 ## Usage
 
 `stack-all` by default runs `stack build` over Stackage Nightly and
-LTS major versions
-(the current default range is nightly & major LTS versions back to lts-20)
+LTS major versions (the current default range is LTS versions back to lts-20)
 corresponding to latest major ghc minor versions,
 using appropriate stack `--resolver` options.
 
@@ -19,7 +18,8 @@ If no `stack.yaml` file is found in a .cabal project,
 Of course it may still fail to build, but this allows for quick attempts
 to build a package that does not include a stack.yaml file.
 
-Since 0.6, stack-all also works outside projects, like stack itself does.
+Since 0.6, stack-all also works outside projects, like stack itself does
+(for commands that do not need a project).
 
 ### Help output
 `$ stack-all --version`
@@ -81,16 +81,17 @@ minor releases of Stackage major versions.
 are not currently supported.)
 
 If you wish you can create `stack-ltsXX.yaml` for all lts versions using
-`--make-all-lts` (`-S`), but it is recommended to only create needed files.
+`--make-all-lts` (`-S`), but it is recommended to create only needed files.
 
-Since 0.7, `stack-lts*.yaml` conflicting (with overlapping major version)
-with `stack.yaml` is detected.
+Since 0.7, a `stack-ltsXX.yaml` conflicting (overlapping in major version)
+with `stack.yaml` gives an error, and stack-all will also refuse to generate
+such a file.
 
 ### Specifying LTS versions
 You can abbreviate `lts-XX` args to `ltsXX` on the commandline.
 `lts` is also accepted and resolves to the latest major LTS version.
 
-You can also use ghc major version aliases:
+You can also use (hardcoded) ghc major version aliases:
 eg `ghc9.8` corresponds to `lts23` or `ghc-9.2` to `lts-20`,
 though not for `nightly` currently.
 
