@@ -9,7 +9,7 @@ I use this to do Haskell build CI for projects locally with stack.
 
 `stack-all` by default runs `stack build` over Stackage Nightly and
 LTS major versions
-(the current default range is nightly & major LTS versions back to lts-18)
+(the current default range is nightly & major LTS versions back to lts-20)
 corresponding to latest major ghc minor versions,
 using appropriate stack `--resolver` options.
 
@@ -81,7 +81,10 @@ minor releases of Stackage major versions.
 are not currently supported.)
 
 If you wish you can create `stack-ltsXX.yaml` for all lts versions using
-`--make-all-lts` (`-S`).
+`--make-all-lts` (`-S`), but it is recommended to only create needed files.
+
+Since 0.7, `stack-lts*.yaml` conflicting (with overlapping major version)
+with `stack.yaml` is detected.
 
 ### Specifying LTS versions
 You can abbreviate `lts-XX` args to `ltsXX` on the commandline.
@@ -89,7 +92,7 @@ You can abbreviate `lts-XX` args to `ltsXX` on the commandline.
 
 You can also use ghc major version aliases:
 eg `ghc9.8` corresponds to `lts23` or `ghc-9.2` to `lts-20`,
-though not for nightly currently.
+though not for `nightly` currently.
 
 There are `--oldest`  and `--newest` options to specify the range of
 lts versions to build over:
@@ -98,10 +101,10 @@ You can specify the oldest major LTS to build for with eg `stack-all -o lts18`.
 Otherwise if not configured the default oldest LTS is currently `lts-20`.
 
 Similarly you can specify the newest LTS version to build from with
-eg `stack-all -n lts20`. (The default is to build from nightly.)
+eg `stack-all -n lts21`. (The default is to build from nightly.)
 
 Alternatively, one can give one or more explicit LTS major versions to build
-for as arguments: eg `stack-all lts21` if you only wish to build that version.
+for as arguments: eg `stack-all lts22` if you only wish to build that version.
 
 ### Configuring the oldest and/or newest LTS to build
 You can configure the oldest working LTS major version for your project
@@ -116,7 +119,7 @@ oldest = lts-21
 This specifies that the oldest LTS version to build for is lts-21.
 
 The newest LTS to build with stack-all can similarly be configured:
-`stack-all -c -n lts22` or setting `newest = lts-22`.
+`stack-all -c -n lts22` or inserting `newest = lts-22`.
 
 ### Running other stack commands
 By default `stack-all` just runs the stack `build` command over
