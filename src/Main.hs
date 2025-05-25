@@ -282,6 +282,12 @@ runStack configs keepgoing debug refresh stack command ver = do
 
 
 #if !MIN_VERSION_simple_cmd(0,2,4)
+#if !MIN_VERSION_filepath(1,4,2)
+isExtensionOf :: String -> FilePath -> Bool
+isExtensionOf ext@('.':_) = isSuffixOf ext . takeExtensions
+isExtensionOf ext         = isSuffixOf ('.':ext) . takeExtensions
+#endif
+
 filesWithExtension :: FilePath -- directory
                    -> String   -- file extension
                    -> IO [FilePath]
@@ -307,9 +313,3 @@ doesFileExistWithExtension dir ext = do
   case mf of
     Nothing -> return False
     Just f -> doesFileExist f
-
-#if !MIN_VERSION_filepath(1,4,2)
-isExtensionOf :: String -> FilePath -> Bool
-isExtensionOf ext@('.':_) = isSuffixOf ext . takeExtensions
-isExtensionOf ext         = isSuffixOf ('.':ext) . takeExtensions
-#endif
