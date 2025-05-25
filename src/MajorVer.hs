@@ -17,7 +17,7 @@ import SimpleCmd (error')
 import Text.Read (readMaybe)
 
 -- FIXME allow specific snapshots?
-data MajorVer = LTS Natural | LTSLatest | Nightly
+data MajorVer = LTS Natural | Nightly
   deriving (Eq, Ord)
 
 maybeReadMajor :: String -> Maybe MajorVer
@@ -55,7 +55,6 @@ maybeReadMajor ver
 -- readMajor "lts-16"
 readMajor :: String -> MajorVer
 readMajor "nightly" = Nightly
-readMajor "lts" = LTSLatest
 readMajor ver =
   case maybeReadMajor ver of
     Just s -> s
@@ -75,7 +74,6 @@ readCompactMajor ver =
 
 showMajor :: MajorVer -> String
 showMajor Nightly = "nightly"
-showMajor LTSLatest = "lts"
 showMajor (LTS ver) = "lts-" ++ show ver
 
 showCompact :: MajorVer -> String
