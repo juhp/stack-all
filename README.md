@@ -33,7 +33,8 @@ Since 0.6, stack-all also works outside projects, like stack itself does
 Build project over Stackage major versions
 
 Usage: stack-all [--version] [-k|--keep-going] [-D|--debug] [--refresh-cache]
-                 [-n|--newest MAJOR] [(-o|--oldest MAJOR) | (-a|--all-lts)]
+                 [--stack STACKPROG] [-n|--newest MAJOR]
+                 [(-o|--oldest MAJOR) | (-a|--all-lts)]
                  [(-c|--create-config) | (-r|--default-resolver MAJOR) |
                    (-u|--update-resolver) | (-s|--make-lts MAJOR) |
                    (-S|--make-all-lts) | [MAJORVER... COMMAND...]]
@@ -46,6 +47,7 @@ Available options:
   -k,--keep-going          Keep going even if an LTS fails
   -D,--debug               Verbose stack build output on error
   --refresh-cache          Force refresh of stackage snapshots.json cache
+  --stack STACKPROG        stack program [default: "stack"]
   -n,--newest MAJOR        Newest LTS release to build from
   -o,--oldest MAJOR        Oldest compatible LTS release
   -a,--all-lts             Try to build back to LTS 1 even

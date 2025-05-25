@@ -53,6 +53,7 @@ main = do
     <$> switchWith 'k' "keep-going" "Keep going even if an LTS fails"
     <*> switchWith 'D' "debug" "Verbose stack build output on error"
     <*> switchLongWith "refresh-cache" "Force refresh of stackage snapshots.json cache"
+    <*> strOptionalLongWith "stack" "STACKPROG" "stack program to use" "stack"
     <*> optional (readMajor <$> strOptionWith 'n' "newest" "MAJOR" "Newest LTS release to build from")
     <*> (Oldest . readMajor <$> strOptionWith 'o' "oldest" "MAJOR" "Oldest compatible LTS release" <|>
          flagWith DefaultLimit AllVersions 'a' "all-lts" "Try to build back to LTS 1 even")
@@ -64,9 +65,9 @@ main = do
      flagWith' MakeAllLTS 'S' "make-all-lts" "Create all stack-ltsXX.yaml files" <|>
      RunCmd <$> many (strArg "MAJORVER... COMMAND..."))
 
-run :: Bool ->Bool -> Bool -> Maybe MajorVer -> VersionLimit -> Command
-    -> IO ()
-run keepgoing debug refresh mnewest verlimit com = do
+run :: Bool ->Bool -> Bool -> FilePath -> Maybe MajorVer -> VersionLimit
+    -> Command -> IO ()
+run keepgoing debug refresh stack mnewest verlimit com = do
   whenJustM findStackProjectDir setCurrentDirectory
   case com of
     CreateConfig ->
@@ -83,7 +84,7 @@ run keepgoing debug refresh mnewest verlimit com = do
       (versions, cargs) <- getVersionsAndCmd verscmd
       configs <- readStackConfigs
       let finalvers = maybe id (filter . (>=)) mnewest versions
-      mapM_ (runStack configs keepgoing debug refresh $ if null cargs then ["build"] else cargs) finalvers
+      mapM_ (runStack configs keepgoing debug refresh stack $ if null cargs then ["build"] else cargs) finalvers
   where
     findStackProjectDir :: IO (Maybe FilePath)
     findStackProjectDir = do
@@ -101,7 +102,7 @@ run keepgoing debug refresh mnewest verlimit com = do
           putStrLn $ "creating" +-+ stackYaml +-+ "in" +-+ cwdir
           -- FIXME take suggested extra-deps into stack.yaml
           -- FIXME stack init content too verbose
-          unlessM (cmdBool "stack" ["init"]) $ do
+          unlessM (cmdBool stack ["init"]) $ do
             snap <- latestLtsSnapshot refresh
             writeFile stackYaml $ "resolver: " ++ snap ++ "\n"
           return $ Just cwdir
@@ -234,12 +235,12 @@ makeStackLTS multiple refresh ver = do
       (if multiple then putStrLn else error') $ "overlapping major versions:" +-+
       unwords (map configFile cs)
 
-runStack :: [ConfigVersion] -> Bool -> Bool -> Bool -> [String] -> MajorVer
-         -> IO ()
-runStack configs keepgoing debug refresh command ver = do
+runStack :: [ConfigVersion] -> Bool -> Bool -> Bool -> FilePath -> [String]
+         -> MajorVer -> IO ()
+runStack configs keepgoing debug refresh stack command ver = do
   -- FIXME add --stack or STACK envvar or look for stack-<VERSION>
   when (ver <= LTS 11) $ do
-    stackver <- readVersion <$> cmd "stack" ["--numeric-version"]
+    stackver <- readVersion <$> cmd stack ["--numeric-version"]
     when (stackver >= makeVersion [3]) $
       error' $ "stack-" ++ showVersion stackver +-+ "no longer supports lts < 12"
   let !mconfig =
@@ -261,17 +262,17 @@ runStack configs keepgoing debug refresh command ver = do
       if debug
         then debugBuild $ opts ++ command
         else do
-        ok <- cmdBool "stack" $ opts ++ command
+        ok <- cmdBool stack $ opts ++ command
         unless (ok || keepgoing) $ do
           putStr "\nsnapshot-pkg-db: "
-          cmd_ "stack" $ "--silent" : opts ++ ["path", "--snapshot-pkg-db"]
+          cmd_ stack $ "--silent" : opts ++ ["path", "--snapshot-pkg-db"]
           error' $ "failed for " ++ showMajor ver
       putStrLn ""
   where
     debugBuild :: [String] -> IO ()
     debugBuild args = do
-      putStr $ "stack " ++ unwords args
-      (ret,out,err) <- readProcessWithExitCode "stack" args ""
+      putStr $ stack +-+ unwords args
+      (ret,out,err) <- readProcessWithExitCode stack args ""
       putStrLn "\n"
       unless (null out) $ putStrLn out
       unless (ret == ExitSuccess) $ do

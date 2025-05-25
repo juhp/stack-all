@@ -2,6 +2,7 @@
 
 ## 0.7 (2025-05-25)
 - complete rework of stack*.yaml config file logic
+- add --stack option to specify stack program (eg stack-2)
 - support "snapshot:" as well as "resolver:"
 - add -S,--make-all-lts flag (pbrisbin,#4)
 - bump default oldest major version from LTS 18 to 20
