@@ -84,7 +84,7 @@ run keepgoing debug refresh mnewest verlimit com = do
       vers <- determineVersions mnewest verlimit []
       mapM_ (makeStackLTS (length vers > 1) refresh) vers
     RunCmd verscmd -> do
-      (versions, cargs) <- getVersionsCmd verscmd
+      (versions, cargs) <- getVersionsAndCmd verscmd
       configs <- readStackConfigs
       let finalvers = maybe id (filter . (>=)) mnewest versions
       mapM_ (runStack configs keepgoing debug refresh $ if null cargs then ["build"] else cargs) finalvers
@@ -116,8 +116,8 @@ run keepgoing debug refresh mnewest verlimit com = do
           putStrLn "no package/project found"
           return Nothing
 
-    getVersionsCmd :: [String] -> IO ([MajorVer],[String])
-    getVersionsCmd verscmd = do
+    getVersionsAndCmd :: [String] -> IO ([MajorVer],[String])
+    getVersionsAndCmd verscmd = do
       let partitionMajors = swap . partitionEithers . map eitherReadMajorAlias
           (verlist,cmds) = partitionMajors verscmd
       versions <- determineVersions mnewest verlimit verlist
