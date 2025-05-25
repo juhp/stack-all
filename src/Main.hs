@@ -3,7 +3,7 @@
 import Control.Monad.Extra (unless, unlessM, when, whenJustM, (||^))
 import Data.Either
 import Data.Ini.Config
-import Data.List (delete, find, nub, sort)
+import Data.List.Extra -- not explicit to avoid awkward CPP
 import Data.Maybe (fromMaybe, listToMaybe)
 import Data.Tuple (swap)
 import Data.Version.Extra
@@ -20,11 +20,7 @@ import System.Directory (copyFile, doesFileExist, getCurrentDirectory,
                          setCurrentDirectory, withCurrentDirectory)
 import System.Exit
 #if !MIN_VERSION_simple_cmd(0,2,4)
-import System.FilePath (
-#if MIN_VERSION_filepath(1,4,2)
-  isExtensionOf,
-#endif
-  (</>))
+import System.FilePath -- not explicit to avoid awkward CPP
 #endif
 import System.IO
 import System.Process
