@@ -1,5 +1,10 @@
 # Release history for stack-all
 
+## 0.7.1 (2025-08-05)
+- check for stack
+- for lts <= 11 fallback to stack-2.15.7
+- MajorVer: improve parsing of nightly (nightly-\*), lts (lts-\*), ghc-\*
+
 ## 0.7 (2025-05-25)
 - complete rework of stack*.yaml config file logic
 - add --stack option to specify stack program (eg stack-2)
