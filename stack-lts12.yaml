@@ -1,7 +1,7 @@
 resolver: lts-12.27
 extra-deps:
   - extra-1.6.15
-  - simple-cmd-0.1.4
+  - simple-cmd-0.2.1
   - simple-cmd-args-0.1.8
   - http-query-0.1.0
   - cached-json-file-0.1.0

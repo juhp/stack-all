@@ -7,7 +7,7 @@ import Data.List.Extra -- not explicit to avoid awkward CPP
 import Data.Maybe (fromMaybe, listToMaybe)
 import Data.Tuple (swap)
 import Data.Version.Extra
-import SimpleCmd ((+-+), cmdBool, cmd, cmd_, error',
+import SimpleCmd ((+-+), cmdBool, cmd, cmd_, error', needProgram, warning,
 #if MIN_VERSION_simple_cmd(0,2,4)
                   fileWithExtension
 #endif
@@ -53,7 +53,7 @@ main = do
     <$> switchWith 'k' "keep-going" "Keep going even if an LTS fails"
     <*> switchWith 'D' "debug" "Verbose stack build output on error"
     <*> switchLongWith "refresh-cache" "Force refresh of stackage snapshots.json cache"
-    <*> strOptionalLongWith "stack" "STACKPROG" "stack program to use" "stack"
+    <*> optional (strOptionLongWith "stack" "STACKPROG" "stack program to use [default: stack]")
     <*> optional (readMajor <$> strOptionWith 'n' "newest" "MAJOR" "Newest LTS release to build from")
     <*> (Oldest . readMajor <$> strOptionWith 'o' "oldest" "MAJOR" "Oldest compatible LTS release" <|>
          flagWith DefaultLimit AllVersions 'a' "all-lts" "Try to build back to LTS 1 even")
@@ -65,9 +65,9 @@ main = do
      flagWith' MakeAllLTS 'S' "make-all-lts" "Create all stack-ltsXX.yaml files" <|>
      RunCmd <$> many (strArg "MAJORVER... COMMAND..."))
 
-run :: Bool ->Bool -> Bool -> FilePath -> Maybe MajorVer -> VersionLimit
+run :: Bool ->Bool -> Bool -> Maybe FilePath -> Maybe MajorVer -> VersionLimit
     -> Command -> IO ()
-run keepgoing debug refresh stack mnewest verlimit com = do
+run keepgoing debug refresh mstack mnewest verlimit com = do
   whenJustM findStackProjectDir setCurrentDirectory
   case com of
     CreateConfig ->
@@ -83,8 +83,9 @@ run keepgoing debug refresh stack mnewest verlimit com = do
     RunCmd verscmd -> do
       (versions, cargs) <- getVersionsAndCmd verscmd
       configs <- readStackConfigs
+      needProgram $ fromMaybe "stack" mstack
       let finalvers = maybe id (filter . (>=)) mnewest versions
-      mapM_ (runStack configs keepgoing debug refresh stack $ if null cargs then ["build"] else cargs) finalvers
+      mapM_ (runStack configs keepgoing debug refresh mstack $ if null cargs then ["build"] else cargs) finalvers
   where
     findStackProjectDir :: IO (Maybe FilePath)
     findStackProjectDir = do
@@ -102,6 +103,8 @@ run keepgoing debug refresh stack mnewest verlimit com = do
           putStrLn $ "creating" +-+ stackYaml +-+ "in" +-+ cwdir
           -- FIXME take suggested extra-deps into stack.yaml
           -- FIXME stack init content too verbose
+          let stack = fromMaybe "stack" mstack
+          needProgram stack
           unlessM (cmdBool stack ["init"]) $ do
             snap <- latestLtsSnapshot refresh
             writeFile stackYaml $ "resolver: " ++ snap ++ "\n"
@@ -235,14 +238,23 @@ makeStackLTS multiple refresh ver = do
       (if multiple then putStrLn else error') $ "overlapping major versions:" +-+
       unwords (map configFile cs)
 
-runStack :: [ConfigVersion] -> Bool -> Bool -> Bool -> FilePath -> [String]
+runStack :: [ConfigVersion] -> Bool -> Bool -> Bool -> Maybe FilePath -> [String]
          -> MajorVer -> IO ()
-runStack configs keepgoing debug refresh stack command ver = do
-  -- FIXME add --stack or STACK envvar or look for stack-<VERSION>
-  when (ver <= LTS 11) $ do
-    stackver <- readVersion <$> cmd stack ["--numeric-version"]
-    when (stackver >= makeVersion [3]) $
-      error' $ "stack-" ++ showVersion stackver +-+ "no longer supports lts < 12"
+runStack configs keepgoing debug refresh mstack command ver = do
+  stack <-
+    case mstack of
+      Just stk -> return stk
+      Nothing ->
+        if ver <= LTS 11
+        then do
+          stackver <- readVersion <$> cmd "stack" ["--numeric-version"]
+          if stackver >= makeVersion [3]
+            then do
+            warning $ "Warning: found stack version" +-+ showVersion stackver ++ ", which does not support lts < 12"
+            warning "Trying stack-2.15.7 (otherwise use '--stack stack-2.*')"
+            return "stack-2.15.7"
+            else return "stack"
+        else return "stack"
   let !mconfig =
         case filter (isVersion ver) configs of
           [] ->
@@ -260,7 +272,7 @@ runStack configs keepgoing debug refresh stack command ver = do
                  maybe [] (\f -> ["--stack-yaml", configFile f]) mconfig
       putStrLn $ "# " ++ minor
       if debug
-        then debugBuild $ opts ++ command
+        then debugBuild stack $ opts ++ command
         else do
         ok <- cmdBool stack $ opts ++ command
         unless (ok || keepgoing) $ do
@@ -269,8 +281,8 @@ runStack configs keepgoing debug refresh stack command ver = do
           error' $ "failed for " ++ showMajor ver
       putStrLn ""
   where
-    debugBuild :: [String] -> IO ()
-    debugBuild args = do
+    debugBuild :: FilePath -> [String] -> IO ()
+    debugBuild stack args = do
       putStr $ stack +-+ unwords args
       (ret,out,err) <- readProcessWithExitCode stack args ""
       putStrLn "\n"

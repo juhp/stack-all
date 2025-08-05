@@ -1,5 +1,5 @@
 name:                stack-all
-version:             0.7
+version:             0.7.1
 synopsis:            CLI tool for building over Stackage major versions
 description:
         Stack-all is a tool for stack building of a Haskell project
@@ -45,7 +45,7 @@ executable stack-all
                      , filepath
                      , http-query
                      , process
-                     , simple-cmd >= 0.1.4
+                     , simple-cmd >= 0.2.1
                      , simple-cmd-args >= 0.1.8
                      , text
                      , yaml
