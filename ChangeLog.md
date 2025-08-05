@@ -4,6 +4,7 @@
 - check for stack
 - for lts <= 11 fallback to stack-2.15.7
 - MajorVer: improve parsing of nightly (nightly-\*), lts (lts-\*), ghc-\*
+- add ghc9.10 alias for lts24
 
 ## 0.7 (2025-05-25)
 - complete rework of stack*.yaml config file logic

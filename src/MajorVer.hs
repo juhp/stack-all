@@ -46,6 +46,7 @@ maybeReadMajor "ghc" = Nothing
 maybeReadMajor ver
   | "ghc" `isPrefixOf` ver =
       case dropPrefix "-" $ dropPrefix "ghc" ver of
+        "9.10" -> Just (LTS 24)
         "9.8" -> Just (LTS 23)
         "9.6" -> Just (LTS 22)
         "9.4" -> Just (LTS 21)
