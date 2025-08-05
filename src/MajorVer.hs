@@ -13,7 +13,7 @@ where
 import Data.Char (isDigit)
 import Data.List.Extra
 import Numeric.Natural (Natural)
-import SimpleCmd (error')
+import SimpleCmd (error', (+-+))
 import Text.Read (readMaybe)
 
 -- FIXME allow specific snapshots?
@@ -21,21 +21,31 @@ data MajorVer = LTS Natural | Nightly
   deriving (Eq, Ord)
 
 maybeReadMajor :: String -> Maybe MajorVer
+maybeReadMajor "nightly" = Just Nightly
 maybeReadMajor ver
-  | "nightly" `isPrefixOf` ver =
-      case dropPrefix "-" $ dropPrefix "nightly" ver of
-        "" -> Just Nightly
+  | "nightly-" `isPrefixOf` ver =
+      case dropPrefix "nightly-" ver of
         ds ->
-          if all (\d -> isDigit d || d == '-') ds
-          then Just Nightly
-          else Nothing
+          if null ds
+          then error' $ "bad major:" +-+ ver
+          else
+            if all (\d -> isDigit d || d == '-') ds
+            then Just Nightly
+            else error' $ "bad major version:" +-+ ver
 maybeReadMajor ver
   | "lts" `isPrefixOf` ver =
-      case readMaybe (dropPrefix "-" (dropPrefix "lts" ver)) of
-        Just major -> Just (LTS major)
-        Nothing -> Nothing
+      case dropPrefix "-" (dropPrefix "lts" ver) of
+        vs ->
+          if null vs
+          then error' $ "bad major:" +-+ ver
+          else
+            if all (\d -> isDigit d || d == '.') vs
+            then Just (LTS $ read $ takeWhile isDigit vs)
+            else error' $ "bad major version:" +-+ ver
+maybeReadMajor "ghc" = Nothing
+maybeReadMajor ver
   | "ghc" `isPrefixOf` ver =
-      case dropPrefix "-" (dropPrefix "ghc" ver) of
+      case dropPrefix "-" $ dropPrefix "ghc" ver of
         "9.8" -> Just (LTS 23)
         "9.6" -> Just (LTS 22)
         "9.4" -> Just (LTS 21)
@@ -49,7 +59,10 @@ maybeReadMajor ver
         "8.0" -> Just (LTS 9)
         "7.10" -> Just (LTS 6)
         "7.8" -> Just (LTS 2)
-        _ -> Nothing
+        ds ->
+          if all (\d -> isDigit d || d == '.') ds
+          then error' $ "bad major version:" +-+ ver
+          else Nothing
   | otherwise = Nothing
 
 -- readMajor "lts-16"
